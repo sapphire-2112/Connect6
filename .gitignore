@@ -1,0 +1,16 @@
+# Binaries
+*.exe
+*.out
+*.test
+
+# Go
+/vendor/
+
+# IDE
+.vscode/
+
+# OS
+.DS_Store
+
+# Docker
+*.tar
