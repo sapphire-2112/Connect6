@@ -1,9 +1,15 @@
 package peer
 
-import "net"
+import (
+	"net"
+)
 
 type Peer struct {
-	ID      string
-	Address string
-	Conn    net.Conn
+	ID        string
+	Address   string
+	Trusted   bool
+	Connected bool
+	Online    bool
+	LastSeen  int64
+	Conn      net.Conn
 }

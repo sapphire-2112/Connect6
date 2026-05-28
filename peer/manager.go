@@ -35,3 +35,15 @@ func (m *Manager) GetPeers() []*Peer {
 
 	return peers
 }
+ func (m *Manager) GetPeerByID(id string) *Peer {
+
+	m.Mutex.Lock()
+	defer m.Mutex.Unlock()
+
+	peer, exists := m.Peers[id]
+	if !exists {
+		return nil
+	}
+
+	return peer
+}

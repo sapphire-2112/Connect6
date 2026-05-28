@@ -1,102 +1,136 @@
 # Connect6 Development Plan
 
-# Vision
+# Current Stage
 
-Connect6 is a privacy-first decentralized peer-to-peer communication platform focused on:
+Connect6 currently functions as a decentralized multi-peer communication runtime where independently operating nodes communicate directly over IPv6 TCP connections.
 
-- user-owned identity
-- decentralized trust relationships
-- encrypted communication
-- local-only encrypted storage
-- minimal metadata exposure
+Implemented capabilities include:
 
-The goal is to build a communication ecosystem that avoids centralized identity systems, centralized message storage, and large-scale metadata collection.
-
----
-
-# Current Architecture
-
-Current system supports:
-
-- IPv6 TCP peer communication
-- decentralized node runtime
-- concurrent peer handling
-- structured JSON protocol messaging
-- manual peer connectivity
-- Dockerized distributed testing
+* concurrent peer handling
+* active peer sessions
+* heartbeat presence tracking
+* targeted messaging
+* decentralized node runtime behavior
+* Docker-based distributed testing
 
 ---
 
-# Current Project Structure
+# Core Architectural Goals
 
-```text
-cmd/node/
-network/
-peer/
-protocol/
-```
+## Decentralized Identity
 
----
+Move from transport-based identity (`IP:PORT`) toward persistent cryptographic node identities.
 
-# Current Features
+Planned:
 
-- multi-peer node connections
-- manual peer connection via IPv6
-- structured protocol messages
-- concurrent message receiving
-- peer management
-- command-driven CLI
+* public/private key identities
+* cryptographic peer verification
+* identity persistence across network changes
 
 ---
 
-# Current Commands
+# Persistent Peer Graph
 
-/connect [ipv6]:8080
-/peers
+Build a decentralized trust-based communication graph where:
 
-normal text = chat message
+* peers persist locally
+* trusted nodes survive restarts
+* relationships are user-controlled
 
----
+Planned:
 
-# Immediate Next Goals
-
-## Networking
-- stabilize peer connection lifecycle
-- peer disconnect handling
-- peer cleanup
-- better terminal UI
-
-## Identity
-- cryptographic identity generation
-- persistent node identity
-- public/private key pairs
-
-## Protocol
-- protocol versioning
-- message IDs
-- targeted peer messaging
-- peer announcement packets
-
-## Security
-- encrypted transport
-- authenticated peer handshakes
-- local encrypted storage
+* automatic peer loading
+* peer metadata persistence
+* trust management
 
 ---
 
-# Long-Term Goals
+# Secure Communication Layer
 
-- decentralized trust propagation
-- invite-based onboarding
-- encrypted local vault
-- peer discovery through trusted peers
-- NAT traversal
-- relay routing
-- resilient decentralized communication graph
+Introduce encrypted peer-to-peer communication.
+
+Planned:
+
+* end-to-end encryption
+* encrypted local vault
+* encrypted protocol payloads
+* secure session establishment
 
 ---
 
-# Current Phase
+# Presence & Session Management
 
-Phase 1:
-Core decentralized node runtime and transport foundation.
+Expand runtime communication behavior.
+
+Planned:
+
+* automatic background reconnect
+* session deduplication
+* decentralized presence propagation
+* heartbeat optimization
+
+---
+
+# Messaging System Evolution
+
+Improve messaging architecture.
+
+Planned:
+
+* local chat persistence
+* conversation history
+* multi-conversation handling
+* offline message handling
+* peer conversation contexts
+
+---
+
+# Decentralized Networking Goals
+
+Long-term networking direction includes:
+
+* decentralized peer discovery
+* invite-based onboarding
+* peer introductions
+* distributed communication graph expansion
+* resilient communication routing
+
+---
+
+# Local Ownership Philosophy
+
+Connect6 prioritizes:
+
+* user-owned identity
+* local-first storage
+* decentralized trust
+* metadata minimization
+* reduced centralized dependency
+
+---
+
+# Long-Term Research Areas
+
+The project also serves as exploration into:
+
+* distributed systems
+* decentralized networking
+* protocol engineering
+* concurrent runtime design
+* cryptographic communication systems
+* peer-to-peer architectures
+* resilient communication ecosystems
+
+---
+
+# Current Priorities
+
+Immediate focus:
+
+1. Stable peer identity system
+2. Session deduplication
+3. Persistent peer loading
+4. Automatic reconnect system
+5. Local message persistence
+6. Encryption integration
+7. Runtime stability improvements
