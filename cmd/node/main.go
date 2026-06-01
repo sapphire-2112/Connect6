@@ -6,40 +6,69 @@ import (
 	"connect6/peer"
 	"connect6/protocol"
 	"connect6/commands"
+	"connect6/data"
 	"fmt"
 	"net"
 	"os"
 	"strings"
 	"time"
+	
 )
 
 var manager = peer.NewManager()
 var currentTarget string
+var nodeID string
 
 
 func handleConnection(conn net.Conn) {
 
 	p := &peer.Peer{
-		ID:      conn.RemoteAddr().String(),
+		ID:      "",
 		Address: conn.RemoteAddr().String(),
 		Connected: true,
 		Conn:    conn,
 		Online:    true,
 		LastSeen:  time.Now().Unix(),
 	}
+	
 
 
-	manager.AddPeer(p)
+	
 
 	fmt.Println("Connected:", p.Address)
 
+
+	join := protocol.Message{
+	Type:      protocol.MessageTypeJoin,
+	SenderID:  nodeID,
+	Timestamp: time.Now().Unix(),
+		}
+
+		network.SendMessage(conn, join)
+
 	go network.ReceiveMessages(conn, func(msg protocol.Message) {
+
+
+			if msg.Type == protocol.MessageTypeJoin {
+				if p.ID != "" {
+						return
+					}
+
+					p.ID = msg.SenderID
+
+					fmt.Println(
+						"Identity learned:",
+						p.ID,
+					)
+					manager.AddPeer(p)
+
+					return
+				}
 
 		if msg.Type == protocol.MessageTypeHeartbeat {
 
 				p.LastSeen = time.Now().Unix()
 				p.Online = true
-
 				return
 			}
 
@@ -51,15 +80,20 @@ func handleConnection(conn net.Conn) {
 
 		fmt.Print("> ")
 	})
+	
 }
 	
 
 func main() {
 
-		var nodeID string
+		identity, err := data.LoadIdentity()
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
 
-		fmt.Print("Enter node ID: ")
-		fmt.Scanln(&nodeID)
+			nodeID = identity.ID
+			fmt.Println("Node ID:", nodeID)
 
 	listener, err := network.StartListener("[::]:8080")
 	if err != nil {
@@ -156,6 +190,13 @@ for {
 			fmt.Println("Connection failed")
 			continue
 		}
+		join := protocol.Message{
+		Type:      protocol.MessageTypeJoin,
+		SenderID:  nodeID,
+		Timestamp: time.Now().Unix(),
+	}
+
+		network.SendMessage(conn, join)
 
 		go handleConnection(conn)
 

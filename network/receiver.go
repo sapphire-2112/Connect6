@@ -7,6 +7,7 @@ import (
 	"net"
 )
 
+
 func ReceiveMessages(
 	conn net.Conn,
 	handler func(protocol.Message),
