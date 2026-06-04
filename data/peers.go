@@ -9,7 +9,6 @@ type StoredPeer struct {
 	Address   string `json:"address"`
 	Trusted   bool   `json:"trusted"`
 	LastSeen  int64  `json:"last_seen"`
-	Online	bool   `json:"online"`
 }
 func SavePeers(peers []StoredPeer) error {
 

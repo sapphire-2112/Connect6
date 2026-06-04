@@ -1,16 +1,13 @@
-# Binaries
-*.exe
-*.out
-*.test
+# Connect6 runtime data
+data/chats/
+data/identity.json
+data/peers.json
 
 # Go
-/vendor/
+*.exe
+*.test
+*.out
 
 # IDE
 .vscode/
-
-# OS
-.DS_Store
-node
-# Docker
-*.tar
+.idea/

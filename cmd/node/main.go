@@ -71,6 +71,22 @@ func handleConnection(conn net.Conn) {
 				p.Online = true
 				return
 			}
+			
+			chatMsg := data.ChatMessage{
+				SenderID: msg.SenderID,
+				Text:     msg.Payload,
+				Time:     msg.Timestamp,
+				Outgoing: false,
+			}
+
+			err := data.SaveMessage(
+				msg.SenderID,
+				chatMsg,
+			)
+
+			if err != nil {
+				fmt.Println("Save failed:", err)
+			}
 
 		fmt.Printf(
 			"\n[%s] %s\n",
@@ -130,6 +146,7 @@ func main() {
 						SenderID:  nodeID,
 						Timestamp: time.Now().Unix(),
 					}
+
 
 					peers := manager.GetPeers()
 
@@ -247,6 +264,18 @@ for {
 	continue
 }
 
+		if strings.HasPrefix(text, "/history ") {
+
+			peerID := strings.TrimPrefix(
+				text,
+				"/history ",
+			)
+
+			commands.History(peerID)
+
+			continue
+		}
+
 	
 	msg := protocol.Message{
 		Type:      protocol.MessageTypeChat,
@@ -254,6 +283,8 @@ for {
 		Payload:   text,
 		Timestamp: time.Now().Unix(),
 	}
+
+	
 
 	if currentTarget == "" {
 
@@ -274,6 +305,24 @@ for {
 			fmt.Println("Target peer disconnected")
 			continue
 		}
+
+		chatMsg := data.ChatMessage{
+				SenderID: nodeID,
+				Text:     text,
+				Time:     msg.Timestamp,
+				Outgoing: true,
+			}
+
+			err := data.SaveMessage(
+				currentTarget,
+				chatMsg,
+			)
+
+			if err != nil {
+				fmt.Println("Save failed:", err)
+			}
+
+
 
 		network.SendMessage(p.Conn, msg)
 }
