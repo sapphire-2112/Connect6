@@ -2,6 +2,7 @@
 data/chats/
 data/identity.json
 data/peers.json
+cmd/node/node
 
 # Go
 *.exe
