@@ -2,14 +2,19 @@
 
 # Current Stage
 
-Connect6 currently functions as a decentralized multi-peer communication runtime where independently operating nodes communicate directly over IPv6 TCP connections.
+Connect6 currently functions as a decentralized identity-based peer-to-peer communication runtime where independently operating nodes communicate directly over IPv6 TCP connections.
 
 Implemented capabilities include:
 
 * concurrent peer handling
 * active peer sessions
 * heartbeat presence tracking
+* online/offline peer detection
 * targeted messaging
+* persistent node identities
+* identity handshake protocol
+* local chat persistence
+* conversation history retrieval
 * decentralized node runtime behavior
 * Docker-based distributed testing
 
@@ -19,13 +24,20 @@ Implemented capabilities include:
 
 ## Decentralized Identity
 
-Move from transport-based identity (`IP:PORT`) toward persistent cryptographic node identities.
+Move from transport-based addressing toward persistent node identities that survive network changes.
+
+Implemented:
+
+* persistent node identity generation
+* identity storage (`identity.json`)
+* identity handshake between peers
 
 Planned:
 
-* public/private key identities
+* cryptographic identities
+* public/private key pairs
 * cryptographic peer verification
-* identity persistence across network changes
+* signed peer introductions
 
 ---
 
@@ -39,9 +51,11 @@ Build a decentralized trust-based communication graph where:
 
 Planned:
 
+* peer persistence (`peers.json`)
 * automatic peer loading
 * peer metadata persistence
 * trust management
+* peer reputation metadata
 
 ---
 
@@ -55,6 +69,7 @@ Planned:
 * encrypted local vault
 * encrypted protocol payloads
 * secure session establishment
+* encrypted chat storage
 
 ---
 
@@ -62,12 +77,19 @@ Planned:
 
 Expand runtime communication behavior.
 
+Implemented:
+
+* heartbeat protocol
+* online/offline tracking
+* last-seen monitoring
+
 Planned:
 
 * automatic background reconnect
 * session deduplication
 * decentralized presence propagation
 * heartbeat optimization
+* identity-based session recovery
 
 ---
 
@@ -75,13 +97,20 @@ Planned:
 
 Improve messaging architecture.
 
+Implemented:
+
+* direct peer messaging
+* active conversation targeting
+* local chat persistence
+* conversation history retrieval
+
 Planned:
 
-* local chat persistence
-* conversation history
 * multi-conversation handling
 * offline message handling
 * peer conversation contexts
+* delivery acknowledgements
+* message synchronization
 
 ---
 
@@ -92,6 +121,7 @@ Long-term networking direction includes:
 * decentralized peer discovery
 * invite-based onboarding
 * peer introductions
+* peer-of-peer visibility
 * distributed communication graph expansion
 * resilient communication routing
 
@@ -106,6 +136,7 @@ Connect6 prioritizes:
 * decentralized trust
 * metadata minimization
 * reduced centralized dependency
+* user-controlled communication
 
 ---
 
@@ -127,10 +158,37 @@ The project also serves as exploration into:
 
 Immediate focus:
 
-1. Stable peer identity system
+1. Persistent peer loading and saving
 2. Session deduplication
-3. Persistent peer loading
-4. Automatic reconnect system
-5. Local message persistence
+3. Automatic reconnect system
+4. Peer introduction system
+5. Local encryption vault
 6. Encryption integration
 7. Runtime stability improvements
+8. Group communication support
+
+---
+
+# Current Milestones
+
+Completed:
+
+✓ IPv6 networking
+
+✓ Multi-peer communication
+
+✓ Heartbeat presence system
+
+✓ Identity persistence
+
+✓ Identity handshake
+
+✓ Direct messaging
+
+✓ Chat persistence
+
+✓ Conversation history retrieval
+
+Next Milestone:
+
+→ Persistent peer graph (`peers.json`)

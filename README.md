@@ -12,10 +12,13 @@ The project explores decentralized communication architecture, distributed syste
 
 * Direct IPv6 peer-to-peer TCP communication
 * Multi-peer concurrent node runtime
+* Persistent node identities
+* Identity handshake protocol
 * Background lightweight peer sessions
 * Heartbeat-based online/offline presence tracking
 * Active conversation targeting using `/use`
-* Persistent peer relationship direction
+* Local chat persistence
+* Conversation history retrieval
 * Modular command architecture
 * Dockerized distributed network testing
 * Concurrent message receiving using Go routines
@@ -49,11 +52,27 @@ Switch active conversation target.
 
 Disconnect active transport session from a peer.
 
+```bash
+/history [peer_id]
+```
+
+View locally stored conversation history with a peer.
+
 ---
 
 # Current Architecture
 
 Connect6 currently separates communication into multiple layers:
+
+## Identity Layer
+
+Provides persistent node identities independent of transport sessions.
+
+Responsibilities:
+
+* node identity generation
+* identity persistence
+* identity exchange during connection establishment
 
 ## Peer Relationship Layer
 
@@ -70,6 +89,14 @@ Maintains lightweight persistent peer sessions for:
 ## Active Conversation Layer
 
 Allows targeted peer messaging without broadcasting messages to every connected node.
+
+## Local Persistence Layer
+
+Provides local-first storage for:
+
+* node identities
+* conversation history
+* future peer metadata persistence
 
 ---
 
@@ -91,14 +118,15 @@ The project is still in active development.
 
 Current limitations include:
 
-* Peer identity currently tied to transport address
-* Duplicate peer sessions possible
+* Peer metadata is not yet persisted across restarts
+* Duplicate peer sessions are possible
 * No cryptographic identity verification yet
 * No encrypted messaging yet
 * No automatic peer reconnect
 * No decentralized peer discovery
 * No NAT traversal support
-* No persistent chat storage yet
+* No offline message synchronization
+* No group communication support
 
 ---
 
@@ -106,12 +134,14 @@ Current limitations include:
 
 Connect6 aims to evolve into a decentralized communication ecosystem focused on:
 
-* user-owned cryptographic identities
+* user-owned identities
+* cryptographic identity verification
 * encrypted local communication vaults
 * decentralized trust propagation
 * direct peer communication
 * metadata minimization
 * local-first encrypted storage
+* decentralized peer introduction systems
 * resilient distributed communication architecture
 
 The long-term goal is to provide a privacy-centric alternative to centralized messaging systems while serving as a deep exploration into distributed systems, protocol engineering, decentralized networking, and secure communication design.
@@ -121,12 +151,26 @@ The long-term goal is to provide a privacy-centric alternative to centralized me
 # Project Status
 
 Current stage:
-Early decentralized communication runtime prototype.
 
-Focus areas:
+Identity-based decentralized communication runtime with persistent local chat storage.
 
-* networking architecture
-* runtime session management
-* peer graph evolution
-* decentralized presence handling
+Implemented:
+
+* IPv6 networking
+* multi-peer communication
+* heartbeat presence tracking
+* identity persistence
+* identity handshake protocol
+* targeted messaging
+* local chat persistence
+* conversation history retrieval
+
+Current focus areas:
+
+* peer persistence
+* session deduplication
+* peer introduction system
+* automatic reconnect
+* encrypted local storage
+* decentralized graph evolution
 * protocol foundation development
