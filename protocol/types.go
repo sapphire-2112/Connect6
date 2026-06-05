@@ -5,5 +5,4 @@ const (
 	MessageTypePeerList = "peer_list"
 	MessageTypeJoin     = "join"
 	MessageTypeHeartbeat = "heartbeat"
-
 )

@@ -50,21 +50,39 @@ func handleConnection(conn net.Conn) {
 
 
 			if msg.Type == protocol.MessageTypeJoin {
-				if p.ID != "" {
+
+					if p.ID != "" {
 						return
 					}
 
 					p.ID = msg.SenderID
+					manager.AddPeer(p)
 
 					fmt.Println(
 						"Identity learned:",
 						p.ID,
 					)
-					manager.AddPeer(p)
+
+					
+
+					storedPeer := data.StoredPeer{
+						ID:       p.ID,
+						Address:  p.Address,
+						Trusted:  false,
+						LastSeen: p.LastSeen,
+					}
+
+					peers, _ := data.LoadPeers()
+
+					peers = append(peers, storedPeer)
+
+					err := data.SavePeers(peers)
+					if err != nil {
+						fmt.Println("SavePeers failed:", err)
+					}
 
 					return
 				}
-
 		if msg.Type == protocol.MessageTypeHeartbeat {
 
 				p.LastSeen = time.Now().Unix()
@@ -110,6 +128,29 @@ func main() {
 
 			nodeID = identity.ID
 			fmt.Println("Node ID:", nodeID)
+
+			storedPeers, err := data.LoadPeers()
+
+					if err == nil {
+
+						for _, sp := range storedPeers {
+
+							p := &peer.Peer{
+								ID:        sp.ID,
+								Address:   sp.Address,
+								LastSeen:  sp.LastSeen,
+								Online:    false,
+								Connected: false,
+							}
+
+							manager.AddPeer(p)
+						}
+
+						fmt.Println(
+							"Loaded peers:",
+							len(storedPeers),
+						)
+					}
 
 	listener, err := network.StartListener("[::]:8080")
 	if err != nil {
