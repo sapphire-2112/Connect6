@@ -1,10 +1,19 @@
 package network
 
 import (
+	"crypto/tls"
 	"net"
 )
 
 func Connect(address string) (net.Conn, error) {
 
-	return net.Dial("tcp6", address)
+	config := &tls.Config{
+		InsecureSkipVerify: true,
+	}
+
+	return tls.Dial(
+		"tcp6",
+		address,
+		config,
+	)
 }

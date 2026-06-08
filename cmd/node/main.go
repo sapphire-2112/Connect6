@@ -7,6 +7,7 @@ import (
 	"connect6/protocol"
 	"connect6/commands"
 	"connect6/data"
+	"connect6/crypto"
 	"fmt"
 	"net"
 	"os"
@@ -62,12 +63,21 @@ func handleConnection(conn net.Conn) {
 						"Identity learned:",
 						p.ID,
 					)
+					p.Online = true
+
+					host, _, err := net.SplitHostPort(p.Address)
+						if err != nil {
+							fmt.Println("Address parse failed:", err)
+							return
+						}
+
+						realAddress := net.JoinHostPort(host, "8080")
 
 					
 
 					storedPeer := data.StoredPeer{
 						ID:       p.ID,
-						Address:  p.Address,
+						Address:  realAddress,
 						Trusted:  false,
 						LastSeen: p.LastSeen,
 					}
@@ -76,7 +86,7 @@ func handleConnection(conn net.Conn) {
 
 					peers = append(peers, storedPeer)
 
-					err := data.SavePeers(peers)
+					err = data.SavePeers(peers)
 					if err != nil {
 						fmt.Println("SavePeers failed:", err)
 					}
@@ -130,6 +140,36 @@ func main() {
 			fmt.Println("Node ID:", nodeID)
 
 			storedPeers, err := data.LoadPeers()
+				go func() {
+
+						for {
+
+							time.Sleep(15 * time.Second)
+
+							peers := manager.GetPeers()
+
+							for _, p := range peers {
+
+								if p.Online {
+									continue
+								}
+
+								conn, err := commands.Connect(p.Address)
+
+								if err != nil {
+									continue
+								}
+								p.Online = true
+
+								fmt.Println("Reconnected:", p.ID)
+
+								go handleConnection(conn)
+							}
+						}
+					}()
+
+
+
 
 					if err == nil {
 
@@ -151,6 +191,28 @@ func main() {
 							len(storedPeers),
 						)
 					}
+
+
+					if _, err := os.Stat("data/cert.pem"); os.IsNotExist(err) {
+
+						err := crypto.GenerateCertificate(
+							"data/cert.pem",
+							"data/key.pem",
+						)
+
+						if err != nil {
+							fmt.Println(err)
+							return
+						}
+
+						fmt.Println("TLS certificate generated")
+					}
+
+
+
+
+
+
 
 	listener, err := network.StartListener("[::]:8080")
 	if err != nil {
@@ -214,7 +276,10 @@ func main() {
 						if time.Now().Unix()-p.LastSeen > 30 {
 
 							p.Online = false
-						}
+							  if p.Conn != nil {
+									p.Conn.Close()
+								}
+							}
 					}
 				}
 			}()
@@ -287,9 +352,10 @@ for {
 				}
 
 				fmt.Printf(
-					"%s -> %s\n",
+					" %s -> %s (%s)\n",
 					p.ID,
 					status,
+					p.Address,
 				)
 		}
 
@@ -341,11 +407,7 @@ for {
 			continue
 		}
 
-		if !p.Connected {
-
-			fmt.Println("Target peer disconnected")
-			continue
-		}
+	
 
 		chatMsg := data.ChatMessage{
 				SenderID: nodeID,
