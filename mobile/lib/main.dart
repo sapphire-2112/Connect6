@@ -3,6 +3,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'screens/contacts_screen.dart';
 import 'screens/qr_screen.dart';
 import 'screens/scan_screen.dart';
+import 'screens/username_screen.dart';
 
 
 void main() {
@@ -37,7 +38,7 @@ class Connect6App extends StatelessWidget {
         ),
       ),
 
-      home: ContactsScreen(),
+      home: const UsernameScreen(),
     );
   }
 }

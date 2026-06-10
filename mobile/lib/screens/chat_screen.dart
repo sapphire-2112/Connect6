@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+
 import '../models/peer.dart';
+import '../models/message.dart';
+
+import '../services/api_service.dart';
+
 import '../widgets/message_bubble.dart';
 
+class ChatScreen extends StatefulWidget {
 
-class ChatScreen extends StatelessWidget {
   final Peer peer;
 
   const ChatScreen({
@@ -12,62 +17,114 @@ class ChatScreen extends StatelessWidget {
   });
 
   @override
+  State<ChatScreen> createState() =>
+      _ChatScreenState();
+}
+
+class _ChatScreenState
+    extends State<ChatScreen> {
+
+  final ApiService api =
+  ApiService();
+
+  List<Message> messages = [];
+
+  @override
+  void initState() {
+
+    super.initState();
+
+    loadMessages();
+  }
+
+  Future<void> loadMessages() async {
+
+    final loadedMessages =
+    await api.getMessages(
+      widget.peer.id,
+    );
+
+    setState(() {
+
+      messages = loadedMessages;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+
     return Scaffold(
+
       appBar: AppBar(
-        title: Text(peer.name),
+        title: Text(
+          widget.peer.name,
+        ),
       ),
+
       body: Column(
+
         children: [
 
           Expanded(
-            child: ListView(
-              children: const [
 
-                MessageBubble(
-                  sender: "Alice",
-                  text: "Hi",
-                ),
+            child: ListView.builder(
 
-                MessageBubble(
-                  sender: "You",
-                  text: "Hello",
-                ),
+              itemCount: messages.length,
 
-                MessageBubble(
-                  sender: "Alice",
-                  text: "Working?",
-                ),
+              itemBuilder:
+                  (context, index) {
 
-                MessageBubble(
-                  sender: "You",
-                  text: "Fine",
-                ),
+                final message =
+                messages[index];
 
-              ],
+                return MessageBubble(
+
+                  sender:
+                  message.sender,
+
+                  text:
+                  message.text,
+                );
+              },
             ),
           ),
 
           Padding(
-            padding: EdgeInsets.all(8),
+
+            padding:
+            const EdgeInsets.all(8),
 
             child: Row(
+
               children: [
 
                 Expanded(
+
                   child: TextField(
-                    decoration: InputDecoration(
-                      hintText: "Type Message",
-                      border: OutlineInputBorder(),
+
+                    decoration:
+                    const InputDecoration(
+
+                      hintText:
+                      "Type Message",
+
+                      border:
+                      OutlineInputBorder(),
                     ),
                   ),
                 ),
 
-                SizedBox(width: 8),
+                const SizedBox(
+                  width: 8,
+                ),
 
                 IconButton(
+
                   onPressed: () {},
-                  icon: Icon(Icons.send),
+
+                  icon: const Icon(
+                    Icons.send,
+                  ),
                 ),
               ],
             ),
