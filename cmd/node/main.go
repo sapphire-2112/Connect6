@@ -2,119 +2,111 @@ package main
 
 import (
 	"bufio"
+	"connect6/commands"
+	"connect6/crypto"
+	"connect6/data"
 	"connect6/network"
 	"connect6/peer"
 	"connect6/protocol"
-	"connect6/commands"
-	"connect6/data"
-	"connect6/crypto"
+	"encoding/json"
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"strings"
 	"time"
-	
 )
 
 var manager = peer.NewManager()
 var currentTarget string
 var nodeID string
 
-
 func handleConnection(conn net.Conn) {
 
 	p := &peer.Peer{
-		ID:      "",
-		Address: conn.RemoteAddr().String(),
+		ID:        "",
+		Address:   conn.RemoteAddr().String(),
 		Connected: true,
-		Conn:    conn,
+		Conn:      conn,
 		Online:    true,
 		LastSeen:  time.Now().Unix(),
 	}
-	
-
-
-	
 
 	fmt.Println("Connected:", p.Address)
 
-
 	join := protocol.Message{
-	Type:      protocol.MessageTypeJoin,
-	SenderID:  nodeID,
-	Timestamp: time.Now().Unix(),
-		}
+		Type:      protocol.MessageTypeJoin,
+		SenderID:  nodeID,
+		Timestamp: time.Now().Unix(),
+	}
 
-		network.SendMessage(conn, join)
+	network.SendMessage(conn, join)
 
 	go network.ReceiveMessages(conn, func(msg protocol.Message) {
 
+		if msg.Type == protocol.MessageTypeJoin {
 
-			if msg.Type == protocol.MessageTypeJoin {
-
-					if p.ID != "" {
-						return
-					}
-
-					p.ID = msg.SenderID
-					manager.AddPeer(p)
-
-					fmt.Println(
-						"Identity learned:",
-						p.ID,
-					)
-					p.Online = true
-
-					host, _, err := net.SplitHostPort(p.Address)
-						if err != nil {
-							fmt.Println("Address parse failed:", err)
-							return
-						}
-
-						realAddress := net.JoinHostPort(host, "8080")
-
-					
-
-					storedPeer := data.StoredPeer{
-						ID:       p.ID,
-						Address:  realAddress,
-						Trusted:  false,
-						LastSeen: p.LastSeen,
-					}
-
-					peers, _ := data.LoadPeers()
-
-					peers = append(peers, storedPeer)
-
-					err = data.SavePeers(peers)
-					if err != nil {
-						fmt.Println("SavePeers failed:", err)
-					}
-
-					return
-				}
-		if msg.Type == protocol.MessageTypeHeartbeat {
-
-				p.LastSeen = time.Now().Unix()
-				p.Online = true
+			if p.ID != "" {
 				return
 			}
-			
-			chatMsg := data.ChatMessage{
-				SenderID: msg.SenderID,
-				Text:     msg.Payload,
-				Time:     msg.Timestamp,
-				Outgoing: false,
-			}
 
-			err := data.SaveMessage(
-				msg.SenderID,
-				chatMsg,
+			p.ID = msg.SenderID
+			manager.AddPeer(p)
+
+			fmt.Println(
+				"Identity learned:",
+				p.ID,
 			)
+			p.Online = true
 
+			host, _, err := net.SplitHostPort(p.Address)
 			if err != nil {
-				fmt.Println("Save failed:", err)
+				fmt.Println("Address parse failed:", err)
+				return
 			}
+
+			realAddress := net.JoinHostPort(host, "8080")
+
+			storedPeer := data.StoredPeer{
+				ID:       p.ID,
+				Address:  realAddress,
+				Trusted:  false,
+				LastSeen: p.LastSeen,
+			}
+
+			peers, _ := data.LoadPeers()
+
+			peers = append(peers, storedPeer)
+
+			err = data.SavePeers(peers)
+			if err != nil {
+				fmt.Println("SavePeers failed:", err)
+			}
+
+			return
+		}
+		if msg.Type == protocol.MessageTypeHeartbeat {
+
+			p.LastSeen = time.Now().Unix()
+			p.Online = true
+			return
+		}
+
+		chatMsg := data.ChatMessage{
+			SenderID: msg.SenderID,
+			Text:     msg.Payload,
+			Time:     msg.Timestamp,
+			Outgoing: false,
+		}
+
+		err := data.SaveMessage(
+			msg.SenderID,
+			chatMsg,
+		)
+
+		if err != nil {
+			fmt.Println("Save failed:", err)
+		}
 
 		fmt.Printf(
 			"\n[%s] %s\n",
@@ -124,95 +116,232 @@ func handleConnection(conn net.Conn) {
 
 		fmt.Print("> ")
 	})
-	
+
 }
-	
 
-func main() {
+func startAPI(identity *data.Identity) {
 
-		identity, err := data.LoadIdentity()
+	http.HandleFunc(
+	"/identity",
+	func(w http.ResponseWriter,
+		r *http.Request) {
+
+		switch r.Method {
+
+		case http.MethodGet:
+
+			json.NewEncoder(w).
+				Encode(identity)
+
+		case http.MethodPost:
+
+			var request struct {
+				Name string `json:"name"`
+			}
+
+			err := json.NewDecoder(
+				r.Body,
+			).Decode(&request)
+
 			if err != nil {
-				fmt.Println(err)
+
+				http.Error(
+					w,
+					err.Error(),
+					http.StatusBadRequest,
+				)
+
 				return
 			}
 
-			nodeID = identity.ID
-			fmt.Println("Node ID:", nodeID)
+			identity.Name =
+				request.Name
 
-			storedPeers, err := data.LoadPeers()
-				go func() {
+			err = data.SaveIdentity(
+				identity,
+			)
 
-						for {
+			if err != nil {
 
-							time.Sleep(15 * time.Second)
+				http.Error(
+					w,
+					err.Error(),
+					http.StatusInternalServerError,
+				)
 
-							peers := manager.GetPeers()
+				return
+			}
 
-							for _, p := range peers {
+			json.NewEncoder(w).
+				Encode(identity)
+		}
+	},
+)
+	http.HandleFunc(
+	"/peers",
+	func(w http.ResponseWriter,
+		r *http.Request) {
 
-								if p.Online {
-									continue
-								}
+		peers := manager.GetPeers()
 
-								conn, err := commands.Connect(p.Address)
+		w.Header().Set(
+			"Content-Type",
+			"application/json",
+		)
 
-								if err != nil {
-									continue
-								}
-								p.Online = true
+		err := json.NewEncoder(w).
+			Encode(peers)
 
-								fmt.Println("Reconnected:", p.ID)
+		if err != nil {
 
-								go handleConnection(conn)
-							}
-						}
-					}()
+			http.Error(
+				w,
+				err.Error(),
+				http.StatusInternalServerError,
+			)
+		}
+	},
+)
 
+http.HandleFunc(
+    "/messages",
+    func(w http.ResponseWriter,
+        r *http.Request) {
 
+        peerID := r.URL.Query().
+            Get("peer_id")
 
+        if peerID == "" {
 
-					if err == nil {
+            http.Error(
+                w,
+                "missing peer_id",
+                http.StatusBadRequest,
+            )
 
-						for _, sp := range storedPeers {
+            return
+        }
 
-							p := &peer.Peer{
-								ID:        sp.ID,
-								Address:   sp.Address,
-								LastSeen:  sp.LastSeen,
-								Online:    false,
-								Connected: false,
-							}
+        messages, err :=
+            data.LoadChat(peerID)
 
-							manager.AddPeer(p)
-						}
+        if err != nil {
 
-						fmt.Println(
-							"Loaded peers:",
-							len(storedPeers),
-						)
-					}
+            http.Error(
+                w,
+                err.Error(),
+                http.StatusInternalServerError,
+            )
 
+            return
+        }
 
-					if _, err := os.Stat("data/cert.pem"); os.IsNotExist(err) {
-
-						err := crypto.GenerateCertificate(
-							"data/cert.pem",
-							"data/key.pem",
-						)
-
-						if err != nil {
-							fmt.Println(err)
-							return
-						}
-
-						fmt.Println("TLS certificate generated")
-					}
-
-
-
+        json.NewEncoder(w).
+            Encode(messages)
+    },
+)
 
 
+	go http.ListenAndServe(
+		"127.0.0.1:9090",
+		nil,
+	)
 
+	go func() {
+
+		err := http.ListenAndServe(
+			"127.0.0.1:9090",
+			nil,
+		)
+
+		if err != nil {
+			fmt.Println(
+				"API Server Error:",
+				err,
+			)
+		}
+
+	}()
+
+}
+
+func main() {
+
+	identity, err := data.LoadIdentity()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	nodeID = identity.ID
+	fmt.Println("Node ID:", nodeID)
+	fmt.Println("Name:", identity.Name)
+	go startAPI(identity)
+
+	storedPeers, err := data.LoadPeers()
+	go func() {
+
+		for {
+
+			time.Sleep(15 * time.Second)
+
+			peers := manager.GetPeers()
+
+			for _, p := range peers {
+
+				if p.Online {
+					continue
+				}
+
+				conn, err := commands.Connect(p.Address)
+
+				if err != nil {
+					continue
+				}
+				p.Online = true
+
+				fmt.Println("Reconnected:", p.ID)
+
+				go handleConnection(conn)
+			}
+		}
+	}()
+
+	if err == nil {
+
+		for _, sp := range storedPeers {
+
+			p := &peer.Peer{
+				ID:        sp.ID,
+				Address:   sp.Address,
+				LastSeen:  sp.LastSeen,
+				Online:    false,
+				Connected: false,
+			}
+
+			manager.AddPeer(p)
+		}
+
+		fmt.Println(
+			"Loaded peers:",
+			len(storedPeers),
+		)
+	}
+
+	if _, err := os.Stat("data/cert.pem"); os.IsNotExist(err) {
+
+		err := crypto.GenerateCertificate(
+			"data/cert.pem",
+			"data/key.pem",
+		)
+
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		fmt.Println("TLS certificate generated")
+	}
 
 	listener, err := network.StartListener("[::]:8080")
 	if err != nil {
@@ -224,7 +353,6 @@ func main() {
 
 	fmt.Println("Node listening on port 8080")
 
-	
 	go func() {
 
 		for {
@@ -238,114 +366,107 @@ func main() {
 		}
 	}()
 	//this is heartbeat func
-			go func() {
+	go func() {
 
-				for {
+		for {
 
-					time.Sleep(10 * time.Second)
+			time.Sleep(10 * time.Second)
 
-					msg := protocol.Message{
-						Type:      protocol.MessageTypeHeartbeat,
-						SenderID:  nodeID,
-						Timestamp: time.Now().Unix(),
-					}
+			msg := protocol.Message{
+				Type:      protocol.MessageTypeHeartbeat,
+				SenderID:  nodeID,
+				Timestamp: time.Now().Unix(),
+			}
 
+			peers := manager.GetPeers()
 
-					peers := manager.GetPeers()
+			for _, p := range peers {
 
-					for _, p := range peers {
+				if p.Connected {
 
-						if p.Connected {
+					network.SendMessage(p.Conn, msg)
+				}
+			}
+		}
+	}()
 
-							network.SendMessage(p.Conn, msg)
-						}
+	go func() {
+
+		for {
+
+			time.Sleep(5 * time.Second)
+
+			peers := manager.GetPeers()
+
+			for _, p := range peers {
+
+				if time.Now().Unix()-p.LastSeen > 30 {
+
+					p.Online = false
+					if p.Conn != nil {
+						p.Conn.Close()
 					}
 				}
-			}()
+			}
+		}
+	}()
 
-			go func() {
-
-				for {
-
-					time.Sleep(5 * time.Second)
-
-					peers := manager.GetPeers()
-
-					for _, p := range peers {
-
-						if time.Now().Unix()-p.LastSeen > 30 {
-
-							p.Online = false
-							  if p.Conn != nil {
-									p.Conn.Close()
-								}
-							}
-					}
-				}
-			}()
-	
-	
-
-	
 	input := bufio.NewScanner(os.Stdin)
 
-for {
+	for {
 
-	fmt.Print("> ")
+		fmt.Print("> ")
 
-	if !input.Scan() {
-		return
-	}
+		if !input.Scan() {
+			return
+		}
 
-	text := input.Text()
-	if text == "" {
-	continue
-}
-
-
-	
-	if strings.HasPrefix(text, "/connect ") {
-
-		address := strings.TrimPrefix(text, "/connect ")
-
-		conn, err := commands.Connect(address)
-		if err != nil {
-			fmt.Println("Connection failed")
+		text := input.Text()
+		if text == "" {
 			continue
 		}
-		join := protocol.Message{
-		Type:      protocol.MessageTypeJoin,
-		SenderID:  nodeID,
-		Timestamp: time.Now().Unix(),
-	}
 
-		network.SendMessage(conn, join)
+		if strings.HasPrefix(text, "/connect ") {
 
-		go handleConnection(conn)
+			address := strings.TrimPrefix(text, "/connect ")
 
-		fmt.Println("Connected to", address)
+			conn, err := commands.Connect(address)
+			if err != nil {
+				fmt.Println("Connection failed")
+				continue
+			}
+			join := protocol.Message{
+				Type:      protocol.MessageTypeJoin,
+				SenderID:  nodeID,
+				Timestamp: time.Now().Unix(),
+			}
 
-		continue
-	}
+			network.SendMessage(conn, join)
 
-	//disconnect
-	if strings.HasPrefix(text, "/disconnect ") {
+			go handleConnection(conn)
 
-	targetID := strings.TrimPrefix(text, "/disconnect ")
+			fmt.Println("Connected to", address)
 
-		commands.Disconnect(manager, targetID)
+			continue
+		}
 
-	continue
-}
+		//disconnect
+		if strings.HasPrefix(text, "/disconnect ") {
 
+			targetID := strings.TrimPrefix(text, "/disconnect ")
 
-	// SHOW PEERS
-	if text == "/peers" {
+			commands.Disconnect(manager, targetID)
 
-		peers := manager.GetPeers()
+			continue
+		}
 
-		for _, p := range peers {
-			status := "offline"
+		// SHOW PEERS
+		if text == "/peers" {
+
+			peers := manager.GetPeers()
+
+			for _, p := range peers {
+				status := "offline"
 
 				if p.Online {
 					status = "online"
@@ -357,19 +478,19 @@ for {
 					status,
 					p.Address,
 				)
+			}
+
+			continue
 		}
 
-		continue
-	}
+		if strings.HasPrefix(text, "/use ") {
 
-	if strings.HasPrefix(text, "/use ") {
+			target := strings.TrimPrefix(text, "/use ")
 
-	target := strings.TrimPrefix(text, "/use ")
+			currentTarget = commands.Use(manager, target)
 
-	currentTarget = commands.Use(manager, target)
-
-	continue
-}
+			continue
+		}
 
 		if strings.HasPrefix(text, "/history ") {
 
@@ -383,21 +504,18 @@ for {
 			continue
 		}
 
-	
-	msg := protocol.Message{
-		Type:      protocol.MessageTypeChat,
-		SenderID:  nodeID,
-		Payload:   text,
-		Timestamp: time.Now().Unix(),
-	}
+		msg := protocol.Message{
+			Type:      protocol.MessageTypeChat,
+			SenderID:  nodeID,
+			Payload:   text,
+			Timestamp: time.Now().Unix(),
+		}
 
-	
+		if currentTarget == "" {
 
-	if currentTarget == "" {
-
-	fmt.Println("No active chat target")
-	continue
-}
+			fmt.Println("No active chat target")
+			continue
+		}
 
 		p := manager.GetPeerByID(currentTarget)
 
@@ -407,26 +525,22 @@ for {
 			continue
 		}
 
-	
-
 		chatMsg := data.ChatMessage{
-				SenderID: nodeID,
-				Text:     text,
-				Time:     msg.Timestamp,
-				Outgoing: true,
-			}
+			SenderID: nodeID,
+			Text:     text,
+			Time:     msg.Timestamp,
+			Outgoing: true,
+		}
 
-			err := data.SaveMessage(
-				currentTarget,
-				chatMsg,
-			)
+		err := data.SaveMessage(
+			currentTarget,
+			chatMsg,
+		)
 
-			if err != nil {
-				fmt.Println("Save failed:", err)
-			}
-
-
+		if err != nil {
+			fmt.Println("Save failed:", err)
+		}
 
 		network.SendMessage(p.Conn, msg)
-}
+	}
 }

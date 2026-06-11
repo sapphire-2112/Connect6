@@ -8,6 +8,7 @@ import (
 
 type Identity struct {
 	ID string `json:"id"`
+	Name string `json:"name"`
 }
 
 
@@ -36,6 +37,7 @@ func LoadIdentity() (*Identity, error) {
 
 	identity := &Identity{
 		ID: id,
+		Name: "",
 	}
 
 	err = SaveIdentity(identity)
