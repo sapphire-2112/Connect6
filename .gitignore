@@ -3,6 +3,8 @@ data/chats/
 data/identity.json
 data/peers.json
 cmd/node/node
+data/cert.pem
+data/key.pem
 
 # Go
 *.exe
