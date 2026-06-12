@@ -93,6 +93,63 @@ func handleConnection(conn net.Conn) {
 
 					return
 				}
+
+				if msg.Type == protocol.MessageTypePeerListRequest {
+
+					peers := manager.GetPeers()
+
+					var peerIDs []string
+
+					for _, peer := range peers {
+
+						if peer.ID == "" {
+							continue
+						}
+
+						peerIDs = append(
+							peerIDs,
+							peer.ID,
+						)
+					}
+
+					response := protocol.Message{
+						Type: protocol.MessageTypePeerListResponse,
+						SenderID: nodeID,
+						Peers: peerIDs,
+						Timestamp: time.Now().Unix(),
+					}
+
+					network.SendMessage(
+						conn,
+						response,
+					)
+
+					return
+				}
+
+							if msg.Type == protocol.MessageTypePeerListResponse {
+
+							fmt.Printf(
+								"\nPeers known by %s\n",
+								msg.SenderID,
+							)
+
+							for _, peerID :=
+								range msg.Peers {
+
+								fmt.Println(peerID)
+							}
+
+							fmt.Print("> ")
+
+							return
+					}
+
+
+
+
+
+
 		if msg.Type == protocol.MessageTypeHeartbeat {
 
 				p.LastSeen = time.Now().Unix()
@@ -124,6 +181,7 @@ func handleConnection(conn net.Conn) {
 
 		fmt.Print("> ")
 	})
+	
 	
 }
 	
@@ -327,6 +385,26 @@ for {
 
 		continue
 	}
+///Added Peers Intro
+
+			if strings.HasPrefix(
+			text,
+			"/peersof ",
+		) {
+
+			targetID := strings.TrimPrefix(
+				text,
+				"/peersof ",
+			)
+
+			commands.PeersOf(
+				manager,
+				targetID,
+				nodeID,
+			)
+
+			continue
+		}
 
 	//disconnect
 	if strings.HasPrefix(text, "/disconnect ") {
