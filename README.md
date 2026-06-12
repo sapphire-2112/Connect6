@@ -14,11 +14,14 @@ The project explores decentralized communication architecture, distributed syste
 * Multi-peer concurrent node runtime
 * Persistent node identities
 * Identity handshake protocol
-* Background lightweight peer sessions
+* Persistent peer storage (`peers.json`)
+* Automatic peer loading on startup
+* Automatic peer reconnect attempts
 * Heartbeat-based online/offline presence tracking
 * Active conversation targeting using `/use`
 * Local chat persistence
 * Conversation history retrieval
+* Peer discovery protocol (`/peersof`)
 * Modular command architecture
 * Dockerized distributed network testing
 * Concurrent message receiving using Go routines
@@ -28,33 +31,27 @@ The project explores decentralized communication architecture, distributed syste
 
 # Current Runtime Commands
 
-```bash
-/connect [ipv6]:8080
-```
+### `/connect [ipv6]:8080`
 
 Connect to a peer node.
 
-```bash
-/peers
-```
+### `/peers`
 
-View currently known peer sessions and online status.
+View currently known peers and online status.
 
-```bash
-/use [peer_id]
-```
+### `/peersof [peer_id]`
+
+Request and view the peers known by another connected node.
+
+### `/use [peer_id]`
 
 Switch active conversation target.
 
-```bash
-/disconnect [peer_id]
-```
+### `/disconnect [peer_id]`
 
-Disconnect active transport session from a peer.
+Disconnect a transport session from a peer.
 
-```bash
-/history [peer_id]
-```
+### `/history [peer_id]`
 
 View locally stored conversation history with a peer.
 
@@ -62,7 +59,7 @@ View locally stored conversation history with a peer.
 
 # Current Architecture
 
-Connect6 currently separates communication into multiple layers:
+Connect6 separates communication into multiple layers.
 
 ## Identity Layer
 
@@ -74,9 +71,20 @@ Responsibilities:
 * identity persistence
 * identity exchange during connection establishment
 
+---
+
 ## Peer Relationship Layer
 
-Represents known or trusted peers within the decentralized graph.
+Represents known peers within the decentralized communication graph.
+
+Responsibilities:
+
+* peer persistence
+* peer loading on startup
+* peer discovery
+* peer relationship tracking
+
+---
 
 ## Background Session Layer
 
@@ -84,19 +92,24 @@ Maintains lightweight persistent peer sessions for:
 
 * heartbeat exchange
 * online presence visibility
+* automatic reconnect attempts
 * decentralized connectivity continuity
+
+---
 
 ## Active Conversation Layer
 
 Allows targeted peer messaging without broadcasting messages to every connected node.
+
+---
 
 ## Local Persistence Layer
 
 Provides local-first storage for:
 
 * node identities
+* peer metadata
 * conversation history
-* future peer metadata persistence
 
 ---
 
@@ -118,12 +131,12 @@ The project is still in active development.
 
 Current limitations include:
 
-* Peer metadata is not yet persisted across restarts
 * Duplicate peer sessions are possible
 * No cryptographic identity verification yet
 * No encrypted messaging yet
-* No automatic peer reconnect
-* No decentralized peer discovery
+* No trust management system
+* No connection request workflow
+* No peer acceptance/rejection mechanism
 * No NAT traversal support
 * No offline message synchronization
 * No group communication support
@@ -150,27 +163,33 @@ The long-term goal is to provide a privacy-centric alternative to centralized me
 
 # Project Status
 
-Current stage:
+### Current Stage
 
-Identity-based decentralized communication runtime with persistent local chat storage.
+Identity-based decentralized communication runtime with persistent peer relationships and peer discovery capabilities.
 
-Implemented:
+### Implemented
 
 * IPv6 networking
-* multi-peer communication
-* heartbeat presence tracking
-* identity persistence
-* identity handshake protocol
-* targeted messaging
-* local chat persistence
-* conversation history retrieval
+* Multi-peer communication
+* Heartbeat presence tracking
+* Identity persistence
+* Identity handshake protocol
+* Persistent peer storage
+* Automatic peer loading
+* Automatic reconnect
+* Targeted messaging
+* Local chat persistence
+* Conversation history retrieval
+* Peer discovery protocol (`/peersof`)
 
-Current focus areas:
+### Current Focus Areas
 
-* peer persistence
-* session deduplication
-* peer introduction system
-* automatic reconnect
-* encrypted local storage
-* decentralized graph evolution
-* protocol foundation development
+* Peer introduction system
+* Connection request workflow
+* Peer acceptance/rejection system
+* Session deduplication
+* Cryptographic identity verification
+* Message signing
+* Encrypted local storage
+* Trust graph evolution
+* Group communication support
