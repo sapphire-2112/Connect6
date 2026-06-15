@@ -13,12 +13,17 @@ import (
 	"os"
 	"strings"
 	"time"
+	"flag"
 	
 )
 
 var manager = peer.NewManager()
 var currentTarget string
 var nodeID string
+var nodeAddress string
+var nodeName string
+var introducedPeers = make(map[string]protocol.PeerInfo)
+var pendingRequests = make(map[string]protocol.PeerInfo)
 
 
 func handleConnection(conn net.Conn) {
@@ -42,6 +47,12 @@ func handleConnection(conn net.Conn) {
 	join := protocol.Message{
 	Type:      protocol.MessageTypeJoin,
 	SenderID:  nodeID,
+	
+	PeerInfo: &protocol.PeerInfo{
+		ID:   nodeID,
+		Name: nodeName,
+		Address: nodeAddress,
+	},
 	Timestamp: time.Now().Unix(),
 		}
 
@@ -56,12 +67,24 @@ func handleConnection(conn net.Conn) {
 						return
 					}
 
-					p.ID = msg.SenderID
+					fmt.Printf(
+					"DEBUG JOIN: %+v\n",
+					msg.PeerInfo,
+				)
+
+					if msg.PeerInfo != nil {
+
+					p.ID = msg.PeerInfo.ID
+					p.Name = msg.PeerInfo.Name
+					p.Address = msg.PeerInfo.Address
+				}
 					manager.AddPeer(p)
 
 					fmt.Println(
-						"Identity learned:",
+						"Identity Name and Address learned:",
 						p.ID,
+						p.Name,
+						p.Address,
 					)
 					p.Online = true
 
@@ -77,12 +100,25 @@ func handleConnection(conn net.Conn) {
 
 					storedPeer := data.StoredPeer{
 						ID:       p.ID,
+						Name:     p.Name,
 						Address:  realAddress,
 						Trusted:  false,
 						LastSeen: p.LastSeen,
 					}
-
 					peers, _ := data.LoadPeers()
+					exists := false
+
+						for _, peer := range peers {
+
+							if peer.ID == storedPeer.ID {
+
+								exists = true
+								break
+							}
+						}
+						if !exists {
+
+
 
 					peers = append(peers, storedPeer)
 
@@ -90,32 +126,34 @@ func handleConnection(conn net.Conn) {
 					if err != nil {
 						fmt.Println("SavePeers failed:", err)
 					}
+				}
 
 					return
 				}
+			
 
 				if msg.Type == protocol.MessageTypePeerListRequest {
 
 					peers := manager.GetPeers()
 
-					var peerIDs []string
+					var peerInfos []protocol.PeerInfo
 
-					for _, peer := range peers {
+						for _, peer := range peers {
 
-						if peer.ID == "" {
-							continue
+							peerInfos = append(
+								peerInfos,
+								protocol.PeerInfo{
+									ID: peer.ID,
+									Name: peer.Name,
+									Address: peer.Address,
+								},
+							)
 						}
-
-						peerIDs = append(
-							peerIDs,
-							peer.ID,
-						)
-					}
 
 					response := protocol.Message{
 						Type: protocol.MessageTypePeerListResponse,
 						SenderID: nodeID,
-						Peers: peerIDs,
+						PeerInfos: peerInfos,
 						Timestamp: time.Now().Unix(),
 					}
 
@@ -134,20 +172,48 @@ func handleConnection(conn net.Conn) {
 								msg.SenderID,
 							)
 
-							for _, peerID :=
-								range msg.Peers {
+							for _, peer := range msg.PeerInfos {
+								introducedPeers[peer.ID] = peer
 
-								fmt.Println(peerID)
+								fmt.Printf(
+									"%s (%s)\n",
+									peer.Name,
+									peer.ID,
+								)
+
+								fmt.Printf(
+									"Address: %s\n\n",
+									peer.Address,
+								)
 							}
+						}
+
+					if msg.Type == protocol.MessageTypeConnectionRequest {
+
+					pendingRequests[msg.PeerInfo.ID] = *msg.PeerInfo
+
+							fmt.Printf(
+								"\nConnection request received\n\n"+
+								"Name: %s\n"+
+								"ID: %s\n"+
+								"Address: %s\n",
+								msg.PeerInfo.Name,
+								msg.PeerInfo.ID,
+								msg.PeerInfo.Address,
+							)
+
+							fmt.Println(
+								"\nUse:\n/accept " +
+								msg.PeerInfo.ID +
+								"\n/reject " +
+								msg.PeerInfo.ID,
+							)
 
 							fmt.Print("> ")
 
 							return
-					}
-
-
-
-
+							}
+											
 
 
 		if msg.Type == protocol.MessageTypeHeartbeat {
@@ -181,21 +247,85 @@ func handleConnection(conn net.Conn) {
 
 		fmt.Print("> ")
 	})
-	
-	
+		
 }
 	
 
 func main() {
+
+	nameFlag := flag.String(
+			"n",
+			"",
+			"node name",
+		)
+		
+
+		addressFlag := flag.String(
+				"a",
+				"",
+				"advertised address",
+			)
+
+		flag.Parse()
 
 		identity, err := data.LoadIdentity()
 			if err != nil {
 				fmt.Println(err)
 				return
 			}
+			if identity.Name == "" {
+
+				if *nameFlag == "" {
+
+					fmt.Println(
+						"Node name required",
+					)
+
+					return
+				}
+
+				identity.Name = *nameFlag
+
+				err = data.SaveIdentity(
+					identity,
+				)
+
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
+			}
+
+			if identity.Address == "" {
+
+				if *addressFlag == "" {
+
+					fmt.Println(
+						"Advertised address required",
+					)
+
+					return
+				}
+
+				identity.Address = *addressFlag
+			}
+
+			err = data.SaveIdentity(identity)
+
+					if err != nil {
+						fmt.Println(err)
+						return
+					}
+
+
+
+			nodeName = identity.Name
+			nodeAddress = identity.Address
 
 			nodeID = identity.ID
 			fmt.Println("Node ID:", nodeID)
+			fmt.Println("Node Name:", identity.Name)
+			fmt.Println("Node Address:", identity.Address)
 
 			storedPeers, err := data.LoadPeers()
 				go func() {
@@ -273,6 +403,7 @@ func main() {
 
 
 	listener, err := network.StartListener("[::]:8080")
+	
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -361,6 +492,83 @@ for {
 }
 
 
+
+
+		if strings.HasPrefix(
+			text,
+			"/request ",
+		) {
+
+			targetID := strings.TrimPrefix(
+				text,
+				"/request ",
+			)
+
+			commands.Request(
+					targetID,
+					nodeID,
+					nodeName,
+					nodeAddress,
+					introducedPeers,
+				)
+
+			continue
+		}
+
+		//Debugging only 
+		if text == "/introduced" {
+
+		for _, peer := range introducedPeers {
+
+			fmt.Printf(
+				"%s (%s) -> %s\n",
+				peer.Name,
+				peer.ID,
+				peer.Address,
+			)
+		}
+
+		continue
+	}
+
+
+
+
+	
+	if strings.HasPrefix(text, "/accept ") {
+
+		targetID := strings.TrimPrefix(
+			text,
+			"/accept ",
+		)
+
+		commands.Accept(
+			manager,
+			targetID,
+			nodeID,
+		)
+
+		continue
+	}
+
+		if strings.HasPrefix(text,"/reject ") {
+
+			targetID := strings.TrimPrefix(
+				text,
+				"/reject ",
+			)
+
+			commands.Reject(
+				manager,
+				targetID,
+				nodeID,
+			)
+
+			continue
+		}
+
+
+
 	
 	if strings.HasPrefix(text, "/connect ") {
 
@@ -374,6 +582,12 @@ for {
 		join := protocol.Message{
 		Type:      protocol.MessageTypeJoin,
 		SenderID:  nodeID,
+		PeerInfo: &protocol.PeerInfo{
+		ID: nodeID,
+		Name: identity.Name,
+		Address: nodeAddress,
+	},
+
 		Timestamp: time.Now().Unix(),
 	}
 

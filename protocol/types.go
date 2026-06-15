@@ -7,4 +7,7 @@ const (
 	MessageTypeHeartbeat = "heartbeat"
 	MessageTypePeerListRequest  = "peer_list_request"
 	MessageTypePeerListResponse = "peer_list_response"
+	MessageTypeConnectionRequest = "connection_request"
+	MessageTypeConnectionAccept  = "connection_accept"
+	MessageTypeConnectionReject  = "connection_reject"
 )

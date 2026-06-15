@@ -7,10 +7,11 @@ import (
 )
 
 type StoredPeer struct {
-	ID        string `json:"id"`
-	Address   string `json:"address"`
-	Trusted   bool   `json:"trusted"`
-	LastSeen  int64  `json:"last_seen"`
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Address  string `json:"address"`
+	Trusted  bool   `json:"trusted"`
+	LastSeen int64  `json:"last_seen"`
 }
 
 func SavePeers(peers []StoredPeer) error {
