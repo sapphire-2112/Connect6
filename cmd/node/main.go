@@ -67,11 +67,6 @@ func handleConnection(conn net.Conn) {
 						return
 					}
 
-					fmt.Printf(
-					"DEBUG JOIN: %+v\n",
-					msg.PeerInfo,
-				)
-
 					if msg.PeerInfo != nil {
 
 					p.ID = msg.PeerInfo.ID
@@ -191,6 +186,10 @@ func handleConnection(conn net.Conn) {
 					if msg.Type == protocol.MessageTypeConnectionRequest {
 
 					pendingRequests[msg.PeerInfo.ID] = *msg.PeerInfo
+					fmt.Println(
+						"Pending count:",
+						len(pendingRequests),
+					)
 
 							fmt.Printf(
 								"\nConnection request received\n\n"+
@@ -213,7 +212,60 @@ func handleConnection(conn net.Conn) {
 
 							return
 							}
-											
+
+
+							if msg.Type == protocol.MessageTypeConnectionAccept {
+
+								if msg.PeerInfo == nil {
+										return
+									}
+
+									fmt.Printf(
+										"\n%s accepted your request\n",
+										msg.PeerInfo.Name,
+									)
+
+									storedPeer := data.StoredPeer{
+										ID:      msg.PeerInfo.ID,
+										Name:    msg.PeerInfo.Name,
+										Address: msg.PeerInfo.Address,
+										Trusted: false,
+										LastSeen: time.Now().Unix(),
+									}	
+									peers, _ := data.LoadPeers()
+
+													exists := false
+
+													for _, peer := range peers {
+
+														if peer.ID == storedPeer.ID {
+
+															exists = true
+															break
+														}
+													}
+
+													if !exists {
+
+														peers = append(
+															peers,
+															storedPeer,
+														)
+
+														err := data.SavePeers(peers)
+
+														if err != nil {
+															fmt.Println(
+																"SavePeers failed:",
+																err,
+															)
+														}
+													}
+													fmt.Print("> ")
+
+														return
+												}
+																	
 
 
 		if msg.Type == protocol.MessageTypeHeartbeat {
@@ -515,24 +567,6 @@ for {
 			continue
 		}
 
-		//Debugging only 
-		if text == "/introduced" {
-
-		for _, peer := range introducedPeers {
-
-			fmt.Printf(
-				"%s (%s) -> %s\n",
-				peer.Name,
-				peer.ID,
-				peer.Address,
-			)
-		}
-
-		continue
-	}
-
-
-
 
 	
 	if strings.HasPrefix(text, "/accept ") {
@@ -543,10 +577,12 @@ for {
 		)
 
 		commands.Accept(
-			manager,
-			targetID,
-			nodeID,
-		)
+				targetID,
+				nodeID,
+				nodeName,
+				nodeAddress,
+				pendingRequests,
+			)
 
 		continue
 	}
