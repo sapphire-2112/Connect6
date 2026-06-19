@@ -9,7 +9,7 @@ Implemented capabilities include:
 * concurrent peer handling
 * active peer sessions
 * heartbeat presence tracking
-* online/offline peer detection
+* decentralized online/offline detection
 * targeted messaging
 * persistent node identities
 * identity handshake protocol
@@ -19,6 +19,11 @@ Implemented capabilities include:
 * local chat persistence
 * conversation history retrieval
 * peer discovery protocol (`/peersof`)
+* peer introduction workflow
+* connection request workflow
+* peer acceptance workflow
+* pending request management
+* persistent peer relationships
 * decentralized node runtime behavior
 * Docker-based distributed testing
 
@@ -34,7 +39,8 @@ Move from transport-based addressing toward persistent node identities that surv
 
 * persistent node identity generation
 * identity storage (`identity.json`)
-* identity handshake between peers
+* identity handshake protocol
+* identity exchange during connection establishment
 
 ### Planned
 
@@ -42,6 +48,7 @@ Move from transport-based addressing toward persistent node identities that surv
 * public/private key pairs
 * cryptographic peer verification
 * signed peer introductions
+* identity reputation metadata
 
 ---
 
@@ -60,6 +67,10 @@ Build a decentralized communication graph where:
 * peer loading on startup
 * automatic reconnect
 * peer discovery (`/peersof`)
+* peer introductions
+* connection requests
+* peer acceptance workflow
+* persistent peer relationships
 
 ### Planned
 
@@ -67,6 +78,7 @@ Build a decentralized communication graph where:
 * peer reputation metadata
 * trusted peer relationships
 * decentralized trust graph
+* trust propagation research
 
 ---
 
@@ -93,6 +105,7 @@ Expand runtime communication behavior.
 
 * heartbeat protocol
 * online/offline tracking
+* decentralized presence detection
 * last-seen monitoring
 * automatic reconnect
 
@@ -101,6 +114,7 @@ Expand runtime communication behavior.
 * session deduplication
 * heartbeat optimization
 * identity-based session recovery
+* connection lifecycle optimization
 
 ---
 
@@ -114,16 +128,18 @@ Improve messaging architecture.
 * active conversation targeting
 * local chat persistence
 * conversation history retrieval
+* peer introduction workflow
+* connection request workflow
+* peer acceptance workflow
 
 ### Planned
 
-* connection requests
-* peer acceptance/rejection workflow
-* peer introductions
 * multi-conversation handling
 * delivery acknowledgements
 * offline message handling
 * message synchronization
+* message forwarding
+* media transfer support
 
 ---
 
@@ -133,11 +149,11 @@ Long-term networking direction includes:
 
 * peer discovery
 * peer introductions
-* connection request routing
 * trust-based onboarding
 * peer-of-peer visibility
 * distributed communication graph expansion
 * resilient communication routing
+* decentralized social graph research
 
 ---
 
@@ -165,20 +181,22 @@ The project serves as an exploration into:
 * cryptographic communication systems
 * peer-to-peer architectures
 * resilient communication ecosystems
+* trust graph design
+* decentralized identity systems
 
 ---
 
 # Current Priorities
 
-1. Peer Introduction System
-2. Connection Request Workflow
-3. Peer Acceptance / Rejection System
-4. Session Deduplication
-5. Cryptographic Identity Verification
-6. Message Signing
-7. Encrypted Local Storage
-8. Trust Graph Foundation
-9. Group Communication Support
+1. Trust Graph Foundation
+2. Session Deduplication
+3. Cryptographic Identity Verification
+4. Message Signing
+5. End-to-End Encryption
+6. Encrypted Local Storage
+7. Group Communication Support
+8. NAT Traversal
+9. Offline Message Synchronization
 
 ---
 
@@ -190,17 +208,9 @@ The project serves as an exploration into:
 
 ✓ Multi-peer communication
 
-✓ Heartbeat presence system
+✓ Persistent node identities
 
-✓ Identity persistence
-
-✓ Identity handshake
-
-✓ Direct messaging
-
-✓ Chat persistence
-
-✓ Conversation history retrieval
+✓ Identity handshake protocol
 
 ✓ Persistent peer storage
 
@@ -208,47 +218,78 @@ The project serves as an exploration into:
 
 ✓ Automatic reconnect
 
+✓ Direct peer messaging
+
+✓ Chat persistence
+
+✓ Conversation history retrieval
+
 ✓ Peer discovery protocol (`/peersof`)
+
+✓ Peer introduction workflow
+
+✓ Connection request workflow
+
+✓ Peer acceptance workflow
+
+✓ Persistent peer relationships
+
+✓ Heartbeat-based decentralized presence
+
+✓ Online/offline peer detection
 
 ---
 
-## Next Milestone
-
-→ Peer Introduction & Connection Request System
-
-### Phase 1
-
-✓ Peer Discovery (`/peersof`)
-
-### Phase 2
-
-→ Connection Request Protocol
-
-* request connection to discovered peer
-* route request through mutual peer
-* display requester metadata
-
-### Phase 3
-
-→ Acceptance Workflow
-
-* accept request
-* reject request
-* establish trusted relationship
-
-### Phase 4
-
-→ Trust Metadata
-
-* introduced by
-* mutual peers
-* trust level
-* peer notes
-
-### Phase 5
+## Current Milestone
 
 → Trust Graph Foundation
 
+### Phase 1 — Discovery
+
+✓ Peer Discovery (`/peersof`)
+
+✓ Introduced Peer Visibility
+
+---
+
+### Phase 2 — Relationship Establishment
+
+✓ Connection Request Workflow
+
+✓ Pending Request Management
+
+✓ Peer Acceptance Workflow
+
+✓ Persistent Peer Relationships
+
+---
+
+### Phase 3 — Presence
+
+✓ Heartbeat Protocol
+
+✓ Last-Seen Tracking
+
+✓ Decentralized Online/Offline Detection
+
+---
+
+### Phase 4 — Trust Metadata
+
+→ In Progress
+
 * trusted peers
-* introduced peers
+* introduced-by tracking
+* mutual peer visibility
+* trust level metadata
+* peer notes
+
+---
+
+### Phase 5 — Trust Graph Foundation
+
 * trust propagation research
+* trust scoring models
+* decentralized onboarding models
+* trusted introduction paths
+* social graph evolution
