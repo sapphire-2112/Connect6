@@ -41,7 +41,7 @@ func handleConnection(conn net.Conn) {
 
 	
 
-	fmt.Println("Connected:", p.Address)
+	//fmt.Println("Connected:", p.Address)
 
 
 	join := protocol.Message{
@@ -129,36 +129,40 @@ func handleConnection(conn net.Conn) {
 
 				if msg.Type == protocol.MessageTypePeerListRequest {
 
-					peers := manager.GetPeers()
+								storedPeers, err := data.LoadPeers()
 
-					var peerInfos []protocol.PeerInfo
+								if err != nil {
+									return
+								}
 
-						for _, peer := range peers {
+								var peerInfos []protocol.PeerInfo
 
-							peerInfos = append(
-								peerInfos,
-								protocol.PeerInfo{
-									ID: peer.ID,
-									Name: peer.Name,
-									Address: peer.Address,
-								},
-							)
-						}
+								for _, peer := range storedPeers {
 
-					response := protocol.Message{
-						Type: protocol.MessageTypePeerListResponse,
-						SenderID: nodeID,
-						PeerInfos: peerInfos,
-						Timestamp: time.Now().Unix(),
-					}
+									peerInfos = append(
+										peerInfos,
+										protocol.PeerInfo{
+											ID: peer.ID,
+											Name: peer.Name,
+											Address: peer.Address,
+										},
+									)
+								}
 
-					network.SendMessage(
-						conn,
-						response,
-					)
+								response := protocol.Message{
+									Type: protocol.MessageTypePeerListResponse,
+									SenderID: nodeID,
+									PeerInfos: peerInfos,
+									Timestamp: time.Now().Unix(),
+								}
 
-					return
-				}
+								network.SendMessage(
+									conn,
+									response,
+								)
+
+								return
+							}
 
 							if msg.Type == protocol.MessageTypePeerListResponse {
 
@@ -176,10 +180,7 @@ func handleConnection(conn net.Conn) {
 									peer.ID,
 								)
 
-								fmt.Printf(
-									"Address: %s\n\n",
-									peer.Address,
-								)
+								
 							}
 						}
 
@@ -195,10 +196,10 @@ func handleConnection(conn net.Conn) {
 								"\nConnection request received\n\n"+
 								"Name: %s\n"+
 								"ID: %s\n"+
-								"Address: %s\n",
+								
 								msg.PeerInfo.Name,
 								msg.PeerInfo.ID,
-								msg.PeerInfo.Address,
+							
 							)
 
 							fmt.Println(
@@ -270,9 +271,21 @@ func handleConnection(conn net.Conn) {
 
 		if msg.Type == protocol.MessageTypeHeartbeat {
 
-				p.LastSeen = time.Now().Unix()
-				p.Online = true
-				return
+				  peers, _ := data.LoadPeers()
+
+					for i := range peers {
+
+						if peers[i].ID == msg.SenderID {
+
+							peers[i].LastSeen = time.Now().Unix()
+
+							break
+						}
+					}
+
+					data.SavePeers(peers)
+
+					return
 			}
 			
 			chatMsg := data.ChatMessage{
@@ -485,45 +498,58 @@ func main() {
 
 					time.Sleep(10 * time.Second)
 
-					msg := protocol.Message{
-						Type:      protocol.MessageTypeHeartbeat,
-						SenderID:  nodeID,
-						Timestamp: time.Now().Unix(),
+					peers, err := data.LoadPeers()
+
+					if err != nil {
+						continue
 					}
 
+					for _, peer := range peers {
 
-					peers := manager.GetPeers()
+						conn, err := commands.Connect(
+							peer.Address,
+						)
 
-					for _, p := range peers {
-
-						if p.Connected {
-
-							network.SendMessage(p.Conn, msg)
+						if err != nil {
+							continue
 						}
+
+						msg := protocol.Message{
+							Type: protocol.MessageTypeHeartbeat,
+							SenderID: nodeID,
+							Timestamp: time.Now().Unix(),
+						}
+
+						network.SendMessage(
+							conn,
+							msg,
+						)
+
+						conn.Close()
 					}
 				}
 			}()
 
-			go func() {
+			// go func() {
 
-				for {
+			// 	for {
 
-					time.Sleep(5 * time.Second)
+			// 		time.Sleep(5 * time.Second)
 
-					peers := manager.GetPeers()
+			// 		peers := manager.GetPeers()
 
-					for _, p := range peers {
+			// 		for _, p := range peers {
 
-						if time.Now().Unix()-p.LastSeen > 30 {
+			// 			if time.Now().Unix()-p.LastSeen > 30 {
 
-							p.Online = false
-							  if p.Conn != nil {
-									p.Conn.Close()
-								}
-							}
-					}
-				}
-			}()
+			// 				p.Online = false
+			// 				  if p.Conn != nil {
+			// 						p.Conn.Close()
+			// 					}
+			// 				}
+			// 		}
+			// 	}
+			// }()
 	
 	
 
@@ -670,25 +696,43 @@ for {
 	// SHOW PEERS
 	if text == "/peers" {
 
-		peers := manager.GetPeers()
+	storedPeers, err := data.LoadPeers()
 
-		for _, p := range peers {
-			status := "offline"
-
-				if p.Online {
-					status = "online"
-				}
-
-				fmt.Printf(
-					" %s -> %s (%s)\n",
-					p.ID,
-					status,
-					p.Address,
-				)
-		}
+	if err != nil {
+		fmt.Println(
+			"LoadPeers failed:",
+			err,
+		)
 
 		continue
 	}
+
+	for _, peer := range storedPeers {
+
+		status := "offline"
+
+			if time.Now().Unix()-peer.LastSeen < 30 {
+				status = "online"
+			}
+		fmt.Printf(
+			"\n%s (%s)\n",
+			peer.Name,
+			peer.ID,
+		)
+
+		fmt.Printf(
+			"Address: %s\n",
+			peer.Address,
+		)
+
+		fmt.Printf(
+			"Status: %s\n",
+			status,
+		)
+	}
+
+	continue
+}
 
 	if strings.HasPrefix(text, "/use ") {
 
