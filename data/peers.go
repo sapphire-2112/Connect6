@@ -11,6 +11,8 @@ type StoredPeer struct {
 	Name     string `json:"name"`
 	Address  string `json:"address"`
 	Trusted  bool   `json:"trusted"`
+	TrustedSince int64  `json:"trusted_since"`
+	TrustedBy int	`json:"trusted_by"`
 	LastSeen int64  `json:"last_seen"`
 }
 
