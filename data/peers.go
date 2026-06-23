@@ -13,7 +13,9 @@ type StoredPeer struct {
 	Trusted  bool   `json:"trusted"`
 	TrustedSince int64  `json:"trusted_since"`
 	TrustedBy int	`json:"trusted_by"`
+	TrustsMe bool `json:"trusts_me"`
 	LastSeen int64  `json:"last_seen"`
+	TrustedByPeers []string `json:"trusted_by_peers"`
 }
 
 func SavePeers(peers []StoredPeer) error {
@@ -52,4 +54,24 @@ func LoadPeers() ([]StoredPeer, error) {
 	}
 
 	return peers, nil
+}
+func GetTrustedByCount() int {
+
+    peers, err := LoadPeers()
+
+    if err != nil {
+        return 0
+    }
+
+    count := 0
+
+    for _, p := range peers {
+
+        if p.TrustsMe {
+
+            count++
+        }
+    }
+
+    return count
 }

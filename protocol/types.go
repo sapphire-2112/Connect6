@@ -10,4 +10,6 @@ const (
 	MessageTypeConnectionRequest = "connection_request"
 	MessageTypeConnectionAccept  = "connection_accept"
 	MessageTypeConnectionReject  = "connection_reject"
+	MessageTypeTrust   = "trust"
+	MessageTypeUntrust = "untrust"
 )

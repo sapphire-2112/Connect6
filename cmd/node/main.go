@@ -255,6 +255,42 @@ func handleConnection(conn net.Conn) {
 			return
 		}
 
+		if msg.Type == protocol.MessageTypeTrust {
+
+					peers, _ := data.LoadPeers()
+
+					for i := range peers {
+
+						if peers[i].ID == msg.SenderID {
+
+							peers[i].TrustsMe = true
+
+							break
+						}
+					}
+
+					data.SavePeers(peers)
+
+					identity, _ := data.LoadIdentity()
+
+					identity.TrustedBy =
+						data.GetTrustedByCount()
+
+					data.SaveIdentity(identity)
+
+					fmt.Println(
+						"Trust received from:",
+						msg.SenderID,
+					)
+					fmt.Println(
+						"My Trusted By:",
+						identity.TrustedBy,
+					)
+
+					return
+				}
+				
+
 		if msg.Type == protocol.MessageTypeHeartbeat {
 
 			peers, _ := data.LoadPeers()
@@ -687,6 +723,9 @@ func main() {
 					"Trusted: %t\n",
 					peer.Trusted,
 				)
+				fmt.Printf(
+					"Trusts Me: %t\n",peer.TrustsMe,
+				)
 
 				if peer.TrustedSince != 0 {
 
@@ -735,6 +774,8 @@ func main() {
 
 				commands.Trust(
 					targetID,
+					nodeID,
+					manager,
 				)
 
 				continue

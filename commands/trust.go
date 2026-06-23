@@ -2,11 +2,14 @@ package commands
 
 import (
 	"connect6/data"
+	"connect6/network"
+	"connect6/peer"
+	"connect6/protocol"
 	"fmt"
 	"time"
 )
 
-func Trust(targetID string) {
+func Trust(targetID string, nodeID string, manager *peer.Manager) {
 
 	peers, err := data.LoadPeers()
 
@@ -41,6 +44,18 @@ func Trust(targetID string) {
 
 		fmt.Println("SavePeers failed")
 		return
+	}
+		p := manager.GetPeerByID(
+		targetID,
+	)
+
+	if p != nil {
+		msg := protocol.Message{
+    Type: protocol.MessageTypeTrust,
+    SenderID: nodeID,
+    Timestamp: time.Now().Unix(),
+}
+network.SendMessage(p.Conn, msg)
 	}
 
 	fmt.Println("Trusted:", targetID)
