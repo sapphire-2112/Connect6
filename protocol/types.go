@@ -12,4 +12,5 @@ const (
 	MessageTypeConnectionReject  = "connection_reject"
 	MessageTypeTrust   = "trust"
 	MessageTypeUntrust = "untrust"
+	MessageTypeReputationUpdate = "reputation_update"
 )

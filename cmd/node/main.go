@@ -36,15 +36,17 @@ func handleConnection(conn net.Conn) {
 	}
 
 	//fmt.Println("Connected:", p.Address)
+	identity, _ := data.LoadIdentity()
 
 	join := protocol.Message{
 		Type:     protocol.MessageTypeJoin,
 		SenderID: nodeID,
 
 		PeerInfo: &protocol.PeerInfo{
-			ID:      nodeID,
-			Name:    nodeName,
-			Address: nodeAddress,
+			ID:        nodeID,
+			Name:      nodeName,
+			Address:   nodeAddress,
+			TrustedBy: identity.TrustedBy,
 		},
 		Timestamp: time.Now().Unix(),
 	}
@@ -64,6 +66,7 @@ func handleConnection(conn net.Conn) {
 				p.ID = msg.PeerInfo.ID
 				p.Name = msg.PeerInfo.Name
 				p.Address = msg.PeerInfo.Address
+
 			}
 			manager.AddPeer(p)
 
@@ -89,11 +92,16 @@ func handleConnection(conn net.Conn) {
 				Address:      realAddress,
 				Trusted:      false,
 				TrustedSince: 0,
-				TrustedBy: 0,
+				TrustedBy:    msg.PeerInfo.TrustedBy,
 				LastSeen:     p.LastSeen,
 			}
 			peers, _ := data.LoadPeers()
 			exists := false
+
+			fmt.Println(
+				"Trusted By:",
+				msg.PeerInfo.TrustedBy,
+			)
 
 			for _, peer := range peers {
 
@@ -115,6 +123,34 @@ func handleConnection(conn net.Conn) {
 
 			return
 		}
+
+		if msg.Type == protocol.MessageTypeReputationUpdate {
+
+					peers, _ := data.LoadPeers()
+
+					for i := range peers {
+
+						if peers[i].ID == msg.PeerInfo.ID {
+
+							peers[i].TrustedBy = msg.PeerInfo.TrustedBy
+							break
+						}
+					}
+
+					data.SavePeers(peers)
+
+					fmt.Println(
+						"Reputation updated:",
+						msg.PeerInfo.ID,
+						"Trusted By:",
+						msg.PeerInfo.TrustedBy,
+					)
+
+					return
+				}
+
+
+
 
 		if msg.Type == protocol.MessageTypePeerListRequest {
 
@@ -185,7 +221,7 @@ func handleConnection(conn net.Conn) {
 					"Name: %s\n"+
 					"ID: %s\n",
 
-					msg.PeerInfo.Name,
+				msg.PeerInfo.Name,
 				msg.PeerInfo.ID,
 			)
 
@@ -218,7 +254,7 @@ func handleConnection(conn net.Conn) {
 				Address:      msg.PeerInfo.Address,
 				Trusted:      false,
 				TrustedSince: 0,
-				TrustedBy: 0,
+				TrustedBy:    msg.PeerInfo.TrustedBy,
 				LastSeen:     time.Now().Unix(),
 			}
 			peers, _ := data.LoadPeers()
@@ -257,39 +293,65 @@ func handleConnection(conn net.Conn) {
 
 		if msg.Type == protocol.MessageTypeTrust {
 
-					peers, _ := data.LoadPeers()
+			peers, _ := data.LoadPeers()
 
-					for i := range peers {
+			for i := range peers {
 
-						if peers[i].ID == msg.SenderID {
+				if peers[i].ID == msg.SenderID {
 
-							peers[i].TrustsMe = true
+					peers[i].TrustsMe = true
 
-							break
+					break
+				}
+			}
+
+			data.SavePeers(peers)
+
+			identity, _ := data.LoadIdentity()
+
+			identity.TrustedBy =
+				data.GetTrustedByCount()
+
+			data.SaveIdentity(identity)
+
+			reputationUpdate := protocol.Message{
+				Type: protocol.MessageTypeReputationUpdate,
+				SenderID: identity.ID,
+				PeerInfo: &protocol.PeerInfo{
+					ID:        identity.ID,
+					TrustedBy: identity.TrustedBy,
+				},
+				Timestamp: time.Now().Unix(),
+			}
+			for _, peer := range manager.GetPeers() {
+
+					if peer.Conn != nil {
+
+						err := network.SendMessage(
+							peer.Conn,
+							reputationUpdate,
+						)
+
+						if err != nil {
+							fmt.Println(
+								"Failed to send reputation update:",
+								err,
+							)
 						}
 					}
-
-					data.SavePeers(peers)
-
-					identity, _ := data.LoadIdentity()
-
-					identity.TrustedBy =
-						data.GetTrustedByCount()
-
-					data.SaveIdentity(identity)
-
-					fmt.Println(
-						"Trust received from:",
-						msg.SenderID,
-					)
-					fmt.Println(
-						"My Trusted By:",
-						identity.TrustedBy,
-					)
-
-					return
 				}
-				
+
+			fmt.Println(
+				"Trust received from:",
+				msg.SenderID,
+			)
+			fmt.Println(
+				"My Trusted By:",
+				identity.TrustedBy,
+			)
+
+			return
+		}
 
 		if msg.Type == protocol.MessageTypeHeartbeat {
 
@@ -724,7 +786,11 @@ func main() {
 					peer.Trusted,
 				)
 				fmt.Printf(
-					"Trusts Me: %t\n",peer.TrustsMe,
+					"Trusts Me: %t\n", peer.TrustsMe,
+				)
+				fmt.Printf(
+					"Trusted By: %d\n",
+					peer.TrustedBy,
 				)
 
 				if peer.TrustedSince != 0 {
@@ -763,40 +829,40 @@ func main() {
 		}
 
 		if strings.HasPrefix(
+			text,
+			"/trust ",
+		) {
+
+			targetID := strings.TrimPrefix(
 				text,
 				"/trust ",
-			) {
+			)
 
-				targetID := strings.TrimPrefix(
-					text,
-					"/trust ",
-				)
+			commands.Trust(
+				targetID,
+				nodeID,
+				manager,
+			)
 
-				commands.Trust(
-					targetID,
-					nodeID,
-					manager,
-				)
+			continue
+		}
 
-				continue
-			}
+		if strings.HasPrefix(
+			text,
+			"/untrust ",
+		) {
 
-			if strings.HasPrefix(
-					text,
-					"/untrust ",
-				) {
+			targetID := strings.TrimPrefix(
+				text,
+				"/untrust ",
+			)
 
-					targetID := strings.TrimPrefix(
-						text,
-						"/untrust ",
-					)
+			commands.Untrust(
+				targetID,
+			)
 
-					commands.Untrust(
-						targetID,
-					)
-
-					continue
-				}
+			continue
+		}
 
 		if strings.HasPrefix(text, "/history ") {
 
