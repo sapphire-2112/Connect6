@@ -11,6 +11,7 @@ type Identity struct {
 	Name string `json:"name"`
 	Address string `json:"address"`
 	TrustedBy int `json:"trusted_by"`
+	TrustedByPeers []string `json:"trusted_by_peers"`
 }
 
 

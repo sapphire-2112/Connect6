@@ -13,4 +13,6 @@ const (
 	MessageTypeTrust   = "trust"
 	MessageTypeUntrust = "untrust"
 	MessageTypeReputationUpdate = "reputation_update"
+	MessageTypeMetadataRequest  = "metadata_request"
+	MessageTypeMetadataResponse = "metadata_response"
 )

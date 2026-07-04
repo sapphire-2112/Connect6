@@ -126,36 +126,25 @@ func handleConnection(conn net.Conn) {
 
 		if msg.Type == protocol.MessageTypeReputationUpdate {
 
-					peers, _ := data.LoadPeers()
+			peers, _ := data.LoadPeers()
 
-					for i := range peers {
+			for i := range peers {
 
-						if peers[i].ID == msg.PeerInfo.ID {
+				if peers[i].ID == msg.PeerInfo.ID {
 
-							peers[i].TrustedBy = msg.PeerInfo.TrustedBy
-							break
-						}
-					}
-
-					data.SavePeers(peers)
-
-					fmt.Println(
-						"Reputation updated:",
-						msg.PeerInfo.ID,
-						"Trusted By:",
-						msg.PeerInfo.TrustedBy,
-					)
-
-					return
+					peers[i].TrustedBy = msg.PeerInfo.TrustedBy
+					break
 				}
+			}
 
+			data.SavePeers(peers)
 
-
+			return
+		}
 
 		if msg.Type == protocol.MessageTypePeerListRequest {
 
 			storedPeers, err := data.LoadPeers()
-
 			if err != nil {
 				return
 			}
@@ -167,9 +156,10 @@ func handleConnection(conn net.Conn) {
 				peerInfos = append(
 					peerInfos,
 					protocol.PeerInfo{
-						ID:      peer.ID,
-						Name:    peer.Name,
-						Address: peer.Address,
+						ID:        peer.ID,
+						Name:      peer.Name,
+						Address:   peer.Address,
+						TrustedBy: peer.TrustedBy,
 					},
 				)
 			}
@@ -191,23 +181,32 @@ func handleConnection(conn net.Conn) {
 
 		if msg.Type == protocol.MessageTypePeerListResponse {
 
-			fmt.Printf(
-				"\nPeers known by %s\n",
-				msg.SenderID,
-			)
+			fmt.Printf("\nPeers known by %s\n", msg.SenderID)
 
 			for _, peer := range msg.PeerInfos {
+
 				introducedPeers[peer.ID] = peer
 
-				fmt.Printf(
-					"%s (%s)\n",
-					peer.Name,
-					peer.ID,
-				)
+				fmt.Printf("%s (%s)\n", peer.Name, peer.ID)
 
+				info, err := commands.Metadata(peer, nodeID)
+				if err != nil {
+					fmt.Println("Metadata unavailable:", err)
+					continue
+				}
+
+				fmt.Printf("Trusted By: %d\n", info.TrustedBy)
+
+				fmt.Println("Mutual Trusted:")
+				if len(info.MutualTrusted) == 0 {
+					fmt.Println("  None")
+				} else {
+					for _, name := range info.MutualTrusted {
+						fmt.Printf("  - %s\n", name)
+					}
+				}
 			}
 		}
-
 		if msg.Type == protocol.MessageTypeConnectionRequest {
 
 			pendingRequests[msg.PeerInfo.ID] = *msg.PeerInfo
@@ -254,11 +253,9 @@ func handleConnection(conn net.Conn) {
 				Address:      msg.PeerInfo.Address,
 				Trusted:      false,
 				TrustedSince: 0,
-				TrustedBy:    msg.PeerInfo.TrustedBy,
 				LastSeen:     time.Now().Unix(),
 			}
 			peers, _ := data.LoadPeers()
-
 			exists := false
 
 			for _, peer := range peers {
@@ -294,12 +291,31 @@ func handleConnection(conn net.Conn) {
 		if msg.Type == protocol.MessageTypeTrust {
 
 			peers, _ := data.LoadPeers()
+			identity, _ := data.LoadIdentity()
 
 			for i := range peers {
 
 				if peers[i].ID == msg.SenderID {
 
 					peers[i].TrustsMe = true
+					exists := false
+
+					for _, id := range identity.TrustedByPeers {
+
+						if id == msg.SenderID {
+
+							exists = true
+							break
+						}
+					}
+
+					if !exists {
+
+						identity.TrustedByPeers = append(
+							identity.TrustedByPeers,
+							msg.SenderID,
+						)
+					}
 
 					break
 				}
@@ -307,15 +323,13 @@ func handleConnection(conn net.Conn) {
 
 			data.SavePeers(peers)
 
-			identity, _ := data.LoadIdentity()
-
 			identity.TrustedBy =
 				data.GetTrustedByCount()
 
 			data.SaveIdentity(identity)
 
 			reputationUpdate := protocol.Message{
-				Type: protocol.MessageTypeReputationUpdate,
+				Type:     protocol.MessageTypeReputationUpdate,
 				SenderID: identity.ID,
 				PeerInfo: &protocol.PeerInfo{
 					ID:        identity.ID,
@@ -325,21 +339,21 @@ func handleConnection(conn net.Conn) {
 			}
 			for _, peer := range manager.GetPeers() {
 
-					if peer.Conn != nil {
+				if peer.Conn != nil {
 
-						err := network.SendMessage(
-							peer.Conn,
-							reputationUpdate,
+					err := network.SendMessage(
+						peer.Conn,
+						reputationUpdate,
+					)
+
+					if err != nil {
+						fmt.Println(
+							"Failed to send reputation update:",
+							err,
 						)
-
-						if err != nil {
-							fmt.Println(
-								"Failed to send reputation update:",
-								err,
-							)
-						}
 					}
 				}
+			}
 
 			fmt.Println(
 				"Trust received from:",
@@ -351,6 +365,28 @@ func handleConnection(conn net.Conn) {
 			)
 
 			return
+		}
+
+		if msg.Type == protocol.MessageTypeMetadataRequest {
+
+			identity, err := data.LoadIdentity()
+			if err != nil {
+				return
+			}
+			response := protocol.Message{
+				Type:     protocol.MessageTypeMetadataResponse,
+				SenderID: identity.ID,
+				PeerInfo: &protocol.PeerInfo{
+					ID:             identity.ID,
+					Name:           identity.Name,
+					Address:        identity.Address,
+					TrustedBy:      identity.TrustedBy,
+					TrustedByPeers: identity.TrustedByPeers,
+				},
+				Timestamp: time.Now().Unix(),
+			}
+			network.SendMessage(conn, response)
+
 		}
 
 		if msg.Type == protocol.MessageTypeHeartbeat {
@@ -788,10 +824,29 @@ func main() {
 				fmt.Printf(
 					"Trusts Me: %t\n", peer.TrustsMe,
 				)
-				fmt.Printf(
-					"Trusted By: %d\n",
-					peer.TrustedBy,
+				info, err := commands.Metadata(
+					protocol.PeerInfo{
+						ID:      peer.ID,
+						Name:    peer.Name,
+						Address: peer.Address,
+					},
+					nodeID,
 				)
+
+				if err != nil {
+					fmt.Println("Metadata unavailable:", err)
+				} else {
+					fmt.Printf("Trusted By: %d\n", info.TrustedBy)
+
+					fmt.Println("Mutual Trusted:")
+					if len(info.MutualTrusted) == 0 {
+						fmt.Println("  None")
+					} else {
+						for _, name := range info.MutualTrusted {
+							fmt.Printf("  - %s\n", name)
+						}
+					}
+				}
 
 				if peer.TrustedSince != 0 {
 

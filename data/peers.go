@@ -15,7 +15,6 @@ type StoredPeer struct {
 	TrustedBy int	`json:"trusted_by"`
 	TrustsMe bool `json:"trusts_me"`
 	LastSeen int64  `json:"last_seen"`
-	TrustedByPeers []string `json:"trusted_by_peers"`
 }
 
 func SavePeers(peers []StoredPeer) error {
