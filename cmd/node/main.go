@@ -198,6 +198,8 @@ func handleConnection(conn net.Conn) {
 				fmt.Printf("Trust Ratio   : %.2f%%\n", info.TrustRatio)
 
 				fmt.Printf("Trusted By: %d\n", info.TrustedBy)
+				fmt.Printf("Confidence Score : %.2f\n", info.ConfidenceScore)
+				fmt.Printf("Confidence       : %s\n", info.Confidence)
 
 				fmt.Println("Mutual Trusted:")
 				if len(info.MutualTrusted) == 0 {
@@ -840,6 +842,8 @@ func main() {
 				)
 				fmt.Printf("Known Peers   : %d\n", info.TotalContacts)
 				fmt.Printf("Trust Ratio   : %.2f%%\n", info.TrustRatio)
+				fmt.Printf("Confidence Score : %.2f\n", info.ConfidenceScore)
+				fmt.Printf("Confidence       : %s\n", info.Confidence)
 
 				if err != nil {
 					fmt.Println("Metadata unavailable:", err)

@@ -12,6 +12,8 @@ type MetadataInfo struct {
     TotalContacts int
     TrustRatio    float64
     MutualTrusted []string
+	ConfidenceScore float64
+	Confidence string
 }
 
 func Metadata(
@@ -44,10 +46,18 @@ func Metadata(
 		TrustedBy: msg.PeerInfo.TrustedBy,
 		TotalContacts: msg.PeerInfo.TotalContacts,
 	}
-	info.TrustRatio = CalculateTrustRatio(
-    info.TrustedBy,
-    info.TotalContacts,
-)
+		info.TrustRatio = CalculateTrustRatio(
+		info.TrustedBy,
+		info.TotalContacts,
+	)
+	info.ConfidenceScore = CalculateConfidenceScore(
+		info.TrustedBy,
+		info.TotalContacts,
+	)
+
+	info.Confidence = GetConfidence(
+		info.ConfidenceScore,
+	)
 
 	storedPeers, err := data.LoadPeers()
 	if err != nil {
