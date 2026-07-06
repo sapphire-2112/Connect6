@@ -8,8 +8,10 @@ import (
 )
 
 type MetadataInfo struct {
-	TrustedBy     int
-	MutualTrusted []string
+    TrustedBy     int
+    TotalContacts int
+    TrustRatio    float64
+    MutualTrusted []string
 }
 
 func Metadata(
@@ -40,7 +42,12 @@ func Metadata(
 
 	info := MetadataInfo{
 		TrustedBy: msg.PeerInfo.TrustedBy,
+		TotalContacts: msg.PeerInfo.TotalContacts,
 	}
+	info.TrustRatio = CalculateTrustRatio(
+    info.TrustedBy,
+    info.TotalContacts,
+)
 
 	storedPeers, err := data.LoadPeers()
 	if err != nil {

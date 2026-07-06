@@ -1,38 +1,38 @@
 package data
+
 import (
-	"fmt"
-	"time"
 	"encoding/json"
+	"fmt"
 	"os"
+	"time"
 )
 
 type Identity struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-	Address string `json:"address"`
-	TrustedBy int `json:"trusted_by"`
+	ID             string   `json:"id"`
+	Name           string   `json:"name"`
+	Address        string   `json:"address"`
+	TrustedBy      int      `json:"trusted_by"`
 	TrustedByPeers []string `json:"trusted_by_peers"`
 }
-
 
 func LoadIdentity() (*Identity, error) {
 
 	data, err := os.ReadFile("data/identity.json")
 
 	if err == nil {
-			if len(data) > 0 {
+		if len(data) > 0 {
 
-		var identity Identity
+			var identity Identity
 
-		err = json.Unmarshal(data, &identity)
-		if err != nil {
-			return nil, err
+			err = json.Unmarshal(data, &identity)
+			if err != nil {
+				return nil, err
+			}
+
+			return &identity, nil
 		}
+	}
 
-		return &identity, nil
-	}
-	}
-	
 	id := fmt.Sprintf(
 		"con6-%d",
 		time.Now().UnixNano(),
@@ -49,7 +49,6 @@ func LoadIdentity() (*Identity, error) {
 
 	return identity, nil
 }
-
 
 func SaveIdentity(identity *Identity) error {
 

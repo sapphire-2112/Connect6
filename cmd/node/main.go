@@ -194,6 +194,8 @@ func handleConnection(conn net.Conn) {
 					fmt.Println("Metadata unavailable:", err)
 					continue
 				}
+				fmt.Printf("Known Peers   : %d\n", info.TotalContacts)
+				fmt.Printf("Trust Ratio   : %.2f%%\n", info.TrustRatio)
 
 				fmt.Printf("Trusted By: %d\n", info.TrustedBy)
 
@@ -373,6 +375,9 @@ func handleConnection(conn net.Conn) {
 			if err != nil {
 				return
 			}
+			storedPeers, _ := data.LoadPeers()
+
+			totalContacts := len(storedPeers)
 			response := protocol.Message{
 				Type:     protocol.MessageTypeMetadataResponse,
 				SenderID: identity.ID,
@@ -382,6 +387,7 @@ func handleConnection(conn net.Conn) {
 					Address:        identity.Address,
 					TrustedBy:      identity.TrustedBy,
 					TrustedByPeers: identity.TrustedByPeers,
+					TotalContacts:  totalContacts,
 				},
 				Timestamp: time.Now().Unix(),
 			}
@@ -832,6 +838,8 @@ func main() {
 					},
 					nodeID,
 				)
+				fmt.Printf("Known Peers   : %d\n", info.TotalContacts)
+				fmt.Printf("Trust Ratio   : %.2f%%\n", info.TrustRatio)
 
 				if err != nil {
 					fmt.Println("Metadata unavailable:", err)
