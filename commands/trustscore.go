@@ -1,8 +1,9 @@
 package commands
+
 import (
 	"math"
-	
 )
+
 func CalculateTrustRatio(trustedBy, totalContacts int) float64 {
 	if totalContacts == 0 {
 		return 0

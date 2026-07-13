@@ -123,6 +123,38 @@ func handleConnection(conn net.Conn) {
 
 			return
 		}
+			if msg.Type == protocol.MessageTypePendingSyncRequest {
+
+			pendingMessages, err := data.LoadPendingMessages()
+			if err != nil {
+				fmt.Println("Failed to load pending messages:", err)
+			}
+
+			for _, pending := range pendingMessages {
+
+				if pending.ReceiverID != msg.SenderID {
+					continue
+				}
+
+				chat := protocol.Message{
+					Type:      protocol.MessageTypeChat,
+					SenderID:  pending.SenderID,
+					Payload:   pending.Content,
+					Timestamp: pending.Timestamp,
+				}
+
+				err := network.SendMessage(conn, chat)
+				if err != nil {
+					fmt.Println("Failed to deliver pending message:", err)
+					continue
+				}
+
+				err = data.RemovePendingMessage(pending.ID)
+				if err != nil {
+					fmt.Println("Failed to remove pending message:", err)
+				}
+			}
+		}
 
 		if msg.Type == protocol.MessageTypeReputationUpdate {
 
@@ -887,10 +919,26 @@ func main() {
 		}
 
 		if strings.HasPrefix(text, "/use ") {
-
 			target := strings.TrimPrefix(text, "/use ")
-
 			currentTarget = commands.Use(manager, target)
+
+					if currentTarget != "" {
+			p := manager.GetPeerByID(currentTarget)
+
+			if p != nil && p.Conn != nil {
+
+				syncReq := protocol.Message{
+					Type:      protocol.MessageTypePendingSyncRequest,
+					SenderID:  nodeID,
+					Timestamp: time.Now().Unix(),
+				}
+
+				err := network.SendMessage(p.Conn, syncReq)
+				if err != nil {
+					fmt.Println("Failed to request pending messages:", err)
+				}
+			}
+		}
 
 			continue
 		}
@@ -980,6 +1028,54 @@ func main() {
 			fmt.Println("Save failed:", err)
 		}
 
-		network.SendMessage(p.Conn, msg)
+
+		if p.Conn == nil {
+		fmt.Println("Connection already closed. Queueing message...")
+
+		pending := data.PendingMessage{
+			ID:         fmt.Sprintf("msg-%d", time.Now().UnixNano()),
+			SenderID:   nodeID,
+			ReceiverID: currentTarget,
+			Content:    text,
+			Timestamp:  msg.Timestamp,
+		}
+
+		err := data.AddPendingMessage(pending)
+		if err != nil {
+			fmt.Println("Queue failed:", err)
+		} else {
+			fmt.Println("Message queued.")
+		}
+
+		continue
 	}
+
+		err=network.SendMessage(p.Conn, msg)
+
+		if err != nil {
+			 fmt.Println("Connection lost.")
+
+		p.Online = false
+		p.Conn = nil
+
+		pending := data.PendingMessage{
+			ID: fmt.Sprintf(
+				"msg-%d",
+				time.Now().UnixNano(),
+			),
+			SenderID:   nodeID,
+			ReceiverID: currentTarget,
+			Content:    text,
+			Timestamp:  msg.Timestamp,
+		}
+
+		err = data.AddPendingMessage(pending)
+		if err != nil {
+			fmt.Println("Failed to queue pending message:", err)
+		} else {
+			fmt.Println("Peer offline. Message queued.")
+		}
+		continue
+	}
+}
 }

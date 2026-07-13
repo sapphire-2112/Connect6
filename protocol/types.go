@@ -15,4 +15,5 @@ const (
 	MessageTypeReputationUpdate = "reputation_update"
 	MessageTypeMetadataRequest  = "metadata_request"
 	MessageTypeMetadataResponse = "metadata_response"
+	MessageTypePendingSyncRequest = "pending_sync_request"
 )
