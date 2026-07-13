@@ -251,23 +251,38 @@ func handleConnection(conn net.Conn) {
 				len(pendingRequests),
 			)
 
-			fmt.Printf(
-				"\nConnection request received\n\n"+
-					"Name: %s\n"+
-					"ID: %s\n",
+			trustRatio := commands.CalculateTrustRatio(
+	msg.PeerInfo.TrustedBy,
+	msg.PeerInfo.TotalContacts,
+)
 
-				msg.PeerInfo.Name,
-				msg.PeerInfo.ID,
-			)
+confidenceScore := commands.CalculateConfidenceScore(
+	msg.PeerInfo.TrustedBy,
+	msg.PeerInfo.TotalContacts,
+)
 
-			fmt.Println(
-				"\nUse:\n/accept " +
-					msg.PeerInfo.ID +
-					"\n/reject " +
-					msg.PeerInfo.ID,
-			)
+confidence := commands.GetConfidence(
+	confidenceScore,
+)
 
-			fmt.Print("> ")
+		fmt.Printf(
+			"\nConnection request received\n\n"+
+				"Name: %s\n"+
+				"ID: %s\n"+
+				"Trusted By: %d\n"+
+				"Known Peers: %d\n"+
+				"Trust Ratio: %.2f%%\n"+
+				"Confidence Score: %.2f\n"+
+				"Confidence: %s\n",
+
+			msg.PeerInfo.Name,
+			msg.PeerInfo.ID,
+			msg.PeerInfo.TrustedBy,
+			msg.PeerInfo.TotalContacts,
+			trustRatio,
+			confidenceScore,
+			confidence,
+		)
 
 			return
 		}

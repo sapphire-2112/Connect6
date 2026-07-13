@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"connect6/data"
 	"connect6/network"
 	"connect6/protocol"
 	"fmt"
@@ -8,75 +9,64 @@ import (
 )
 
 func Request(
-    targetID string,
-    nodeID string,
-    nodeName string,
-    nodeAddress string,
-    introducedPeers map[string]protocol.PeerInfo,
-){
+	targetID string,
+	nodeID string,
+	nodeName string,
+	nodeAddress string,
+	introducedPeers map[string]protocol.PeerInfo,
+) {
 
-	peerInfo, exists :=
-	introducedPeers[targetID]
+	peerInfo, exists := introducedPeers[targetID]
 
-		if !exists {
+	if !exists {
+		fmt.Println("Peer not known")
+		return
+	}
 
-			fmt.Println(
-				"Peer not known",
-			)
+	conn, err := Connect(peerInfo.Address)
+	if err != nil {
+		fmt.Println("Connection failed")
+		return
+	}
+	defer conn.Close()
 
-			return
-		}
-		conn, err := Connect(
-	peerInfo.Address,
-			)
+	identity, err := data.LoadIdentity()
+	if err != nil {
+		fmt.Println("Failed to load identity")
+		return
+	}
 
-			if err != nil {
+	storedPeers, err := data.LoadPeers()
+	if err != nil {
+		fmt.Println("Failed to load peers")
+		return
+	}
 
-				fmt.Println(
-					"Connection failed",
-				)
+	totalContacts := len(storedPeers)
 
-				return
-			}
+	msg := protocol.Message{
+		Type:     protocol.MessageTypeConnectionRequest,
+		SenderID: nodeID,
+		PeerInfo: &protocol.PeerInfo{
+			ID:             identity.ID,
+			Name:           identity.Name,
+			Address:        identity.Address,
+			TrustedBy:      identity.TrustedBy,
+			TrustedByPeers: identity.TrustedByPeers,
+			TotalContacts:  totalContacts,
+		},
+		Timestamp: time.Now().Unix(),
+	}
 
+	err = network.SendMessage(conn, msg)
+	if err != nil {
+		fmt.Println("Request failed")
+		return
+	}
 
-			msg := protocol.Message{
-				Type: protocol.MessageTypeConnectionRequest,
-
-				SenderID: nodeID,
-
-				PeerInfo: &protocol.PeerInfo{
-					ID:      nodeID,
-					Name:    nodeName,
-					Address: nodeAddress,
-				},
-
-				Timestamp: time.Now().Unix(),
-			}
-
-			err = network.SendMessage(
-				conn,
-				msg,
-			)
-
-			if err != nil {
-
-				conn.Close()
-
-				fmt.Println(
-					"Request failed",
-				)
-
-				return
-			}
-			conn.Close()
-
-			fmt.Printf(
-				"Request sent to %s (%s)\n",
-				peerInfo.Name,
-				peerInfo.ID,
-			)
-
-	
-	
+	fmt.Printf(
+		"Request sent to %s (%s)\n",
+		peerInfo.Name,
+		peerInfo.ID,
+	)
 }
