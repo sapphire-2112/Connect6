@@ -35,6 +35,18 @@ func (m *Manager) GetPeers() []*Peer {
 
 	return peers
 }
+
+func (m *Manager) DisconnectAll() {
+	m.Mutex.Lock()
+	defer m.Mutex.Unlock()
+
+	for _, peer := range m.Peers {
+		if peer.Conn != nil {
+			peer.Conn.Close()
+		}
+	}
+}
+
  func (m *Manager) GetPeerByID(id string) *Peer {
 
 	m.Mutex.Lock()

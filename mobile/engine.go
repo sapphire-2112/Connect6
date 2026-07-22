@@ -79,22 +79,7 @@ func (e *Engine) StartNode() error {
 // // Requests
 // // --------------------
 
-// // Send a connection request
-// func (e *Engine) SendRequest(peerID string) error
 
-// // All incoming pending requests
-// func (e *Engine) GetPendingRequests()
-
-// // Accept / Reject
-// func (e *Engine) AcceptRequest(peerID string) error
-
-// func (e *Engine) RejectRequest(peerID string) error
-
-
-
-
-
-// func (e *Engine) GetPeersOf(peerID string)
 
 // // --------------------
 // // QR
