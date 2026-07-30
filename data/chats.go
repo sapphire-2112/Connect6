@@ -2,6 +2,7 @@ package data
 import (
 	"encoding/json"
 	"os"
+	"path/filepath"
 )
 
 type ChatMessage struct {
@@ -13,7 +14,7 @@ type ChatMessage struct {
 
 func LoadChat(peerID string) ([]ChatMessage, error) {
 
-	filePath := "data/chats/" + peerID + ".json"
+	filePath := filepath.Join(ChatsDir(), peerID+".json")
 
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 

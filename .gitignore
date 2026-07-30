@@ -12,3 +12,7 @@ cmd/node/node
 # IDE
 .vscode/
 .idea/
+
+# Android Studio
+*.aar
+*-sources.jar

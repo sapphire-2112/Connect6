@@ -12,15 +12,16 @@ type PendingMessage struct {
 	Content    string
 	Timestamp  int64
 }
-const PendingMessagesFile = "data/pending_messages.json"
+
 
 func LoadPendingMessages() ([]PendingMessage, error) {
     var messages []PendingMessage
-	if _, err := os.Stat(PendingMessagesFile); os.IsNotExist(err) {
+	 filePath := PendingRequestsPath()
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		return []PendingMessage{}, nil
 	}
 
-	data, err := os.ReadFile(PendingMessagesFile)
+	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return messages, err
 	}
@@ -33,8 +34,10 @@ func LoadPendingMessages() ([]PendingMessage, error) {
 	return messages, nil
 }
 
-func SavePendingMessages(messages []PendingMessage) error { 
-    filePath := PendingMessagesFile
+func SavePendingMessages(messages []PendingMessage) error {
+
+	filePath := PendingRequestsPath()
+
 	data, err := json.MarshalIndent(messages, "", "  ")
 	if err != nil {
 		return err

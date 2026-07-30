@@ -612,21 +612,21 @@ func main() {
 			len(storedPeers),
 		)
 	}
+	os.MkdirAll(filepath.Dir(data.CertPath()), 0755)
 
-	if _, err := os.Stat("data/cert.pem"); os.IsNotExist(err) {
+	if _, err := os.Stat(data.CertPath()); os.IsNotExist(err) {
 
 		err := crypto.GenerateCertificate(
-			"data/cert.pem",
-			"data/key.pem",
+			data.CertPath(),
+			data.KeyPath(),
 		)
-
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
-		fmt.Println("TLS certificate generated")
+		fmt.Println("Certificate generated.")
 	}
+
 
 	listener, err := network.StartListener("[::]:8080")
 

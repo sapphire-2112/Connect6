@@ -17,7 +17,7 @@ type Identity struct {
 
 func LoadIdentity() (*Identity, error) {
 
-	data, err := os.ReadFile("data/identity.json")
+	data, err := os.ReadFile(IdentityPath())
 
 	if err == nil {
 		if len(data) > 0 {
@@ -63,8 +63,8 @@ func SaveIdentity(identity *Identity) error {
 	}
 
 	return os.WriteFile(
-		"data/identity.json",
-		data,
-		0644,
-	)
+	IdentityPath(),
+	data,
+	0644,
+)
 }

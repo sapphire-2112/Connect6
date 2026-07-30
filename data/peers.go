@@ -19,7 +19,7 @@ type StoredPeer struct {
 
 func SavePeers(peers []StoredPeer) error {
 
-	filePath := "data/peers.json"
+	filePath := PeersPath()
 	data, err := json.MarshalIndent(peers, "", "  ")
 	if err != nil {
 		return err

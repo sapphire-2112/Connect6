@@ -5,6 +5,10 @@ import (
 	"connect6/peer"
 	"connect6/protocol"
 	"connect6/network"
+    "connect6/crypto"
+    "fmt"
+    "path/filepath"
+    "os"
 	"net"
     "sync"
 )
@@ -15,6 +19,7 @@ type Engine struct {
 	identity *data.Identity
 
 	knownPeers []data.StoredPeer
+    storagePath string
 
 	listener net.Listener
 
@@ -45,11 +50,36 @@ func (e *Engine) StartNode() error {
     }
     e.knownPeers = knownPeers
 
+    os.MkdirAll(filepath.Dir(data.CertPath()), 0755)
+
+        if _, err := os.Stat(data.CertPath()); os.IsNotExist(err) {
+
+            err := crypto.GenerateCertificate(
+                data.CertPath(),
+                data.KeyPath(),
+            )
+            if err != nil {
+                return err
+            }
+
+            fmt.Println("Generated TLS certificate")
+        }
+        
+
+       if e.identity.Address == "" {  //temporily fixed  to avoid emty address issue
+    e.identity.Address = "[::]:8080"
+
+    if err := data.SaveIdentity(e.identity); err != nil {
+        return err
+    }
+}
+
     listener, err := network.StartListener(e.identity.Address)
     if err != nil {
         return err
     }
     e.listener = listener
+    fmt.Println("Address:", e.identity.Address)
 
     go e.acceptLoop()
     go e.heartbeatLoop()
@@ -58,6 +88,12 @@ func (e *Engine) StartNode() error {
     return nil
 }
 
+func (e *Engine) Version() string {
+    return "1.0"
+}
+func (e *Engine) SetStoragePath(path string) {
+	data.SetStoragePath(path)
+}
 // func (e *Engine) StopNode()
 
 // // --------------------
