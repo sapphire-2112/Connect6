@@ -33,3 +33,31 @@ func (e *Engine) GetQRCodePayload() (string, error) {
 
     return string(b), nil
 }
+
+func ParseQRCodePayload(payload string) (*QRPeer, error) {
+
+	var peer QRPeer
+
+	err := json.Unmarshal(
+		[]byte(payload),
+		&peer,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if peer.Type != "peer" {
+		return nil, errors.New("invalid qr type")
+	}
+
+	if peer.ID == "" {
+		return nil, errors.New("missing peer id")
+	}
+
+	if peer.Address == "" {
+		return nil, errors.New("missing peer address")
+	}
+
+	return &peer, nil
+}
