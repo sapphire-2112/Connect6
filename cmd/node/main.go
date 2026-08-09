@@ -14,6 +14,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	"path/filepath"
 )
 
 var manager = peer.NewManager()
@@ -621,7 +622,8 @@ func main() {
 			data.KeyPath(),
 		)
 		if err != nil {
-			return err
+			 fmt.Println(err)
+   			 return
 		}
 
 		fmt.Println("Certificate generated.")

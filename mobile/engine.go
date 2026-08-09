@@ -102,6 +102,7 @@ func (e *Engine) SetStoragePath(path string) {
 func (e *Engine) SetAdvertisedAddress(address string) {
     e.advertisedAddress = address
 }
+
 // func (e *Engine) StopNode()
 
 // // --------------------
