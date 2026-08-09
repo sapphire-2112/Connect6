@@ -22,6 +22,7 @@ type Engine struct {
     storagePath string
 
 	listener net.Listener
+     advertisedAddress string
 
 	introducedPeers map[string]protocol.PeerInfo
 	pendingRequests map[string]protocol.PeerInfo
@@ -43,6 +44,15 @@ func (e *Engine) StartNode() error {
         return err
     }
     e.identity = identity
+   if e.advertisedAddress != "" &&
+    e.identity.Address != e.advertisedAddress {
+
+    e.identity.Address = e.advertisedAddress
+
+    if err := data.SaveIdentity(e.identity); err != nil {
+        return err
+    }
+}
 
     knownPeers, err := data.LoadPeers()
     if err != nil {
@@ -59,40 +69,38 @@ func (e *Engine) StartNode() error {
                 data.KeyPath(),
             )
             if err != nil {
-                return err
+                    return err
+                }
+
+                fmt.Println("Generated TLS certificate")
             }
+            
 
-            fmt.Println("Generated TLS certificate")
+     
+
+        listener, err := network.StartListener("[::]:8080")
+        if err != nil {
+            return err
         }
-        
+        e.listener = listener
+        fmt.Println("Advertised:", e.identity.Address)
+        fmt.Println("Listening :", "[::]:8080")
 
-       if e.identity.Address == "" {  //temporily fixed  to avoid emty address issue
-    e.identity.Address = "[::]:8080"
+        go e.acceptLoop()
+        go e.heartbeatLoop()
+        go e.reconnectLoop()
 
-    if err := data.SaveIdentity(e.identity); err != nil {
-        return err
+        return nil
     }
-}
 
-    listener, err := network.StartListener(e.identity.Address)
-    if err != nil {
-        return err
+    func (e *Engine) Version() string {
+        return "1.0"
     }
-    e.listener = listener
-    fmt.Println("Address:", e.identity.Address)
-
-    go e.acceptLoop()
-    go e.heartbeatLoop()
-    go e.reconnectLoop()
-
-    return nil
-}
-
-func (e *Engine) Version() string {
-    return "1.0"
-}
 func (e *Engine) SetStoragePath(path string) {
 	data.SetStoragePath(path)
+}
+func (e *Engine) SetAdvertisedAddress(address string) {
+    e.advertisedAddress = address
 }
 // func (e *Engine) StopNode()
 
