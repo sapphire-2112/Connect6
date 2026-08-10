@@ -2,23 +2,24 @@ package mobile
 
 import (
 	"connect6/data"
+	"encoding/json"
 	"time"
 )
 
 type PeerSummary struct {
-	ID       string
-	Name     string
-	Online   bool
-	LastSeen int64
-	Trusted  bool
-	TrustsMe bool
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Online   bool   `json:"online"`
+	LastSeen int64  `json:"last_seen"`
+	Trusted  bool   `json:"trusted"`
+	TrustsMe bool   `json:"trusts_me"`
 }
 
-func (e *Engine) GetPeers() ([]PeerSummary, error) {
+func (e *Engine) GetPeers() (string, error) {
 
 	storedPeers, err := data.LoadPeers()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	var peers []PeerSummary
@@ -37,5 +38,10 @@ func (e *Engine) GetPeers() ([]PeerSummary, error) {
 		})
 	}
 
-	return peers, nil
+	b, err := json.Marshal(peers)
+	if err != nil {
+		return "", err
+	}
+
+	return string(b), nil
 }
